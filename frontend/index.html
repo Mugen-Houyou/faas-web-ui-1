@@ -7,15 +7,21 @@
 </head>
 <body>
   <h1>Code Runner</h1>
+  <label for="endpoint">API Endpoint:</label>
+  <input id="endpoint" size="60" placeholder="https://your-api-endpoint.amazonaws.com/prod/compile">
+  <br>
   <label for="lang">Language:</label>
   <select id="lang">
-    <option value="python">Python</option>
     <option value="c">C</option>
     <option value="cpp">C++</option>
-    <option value="java">Java</option>
+    <option value="java" disabled>Java (준비 중)</option>
+    <option value="python" disabled>Python (준비 중)</option>
   </select>
 
   <textarea id="code" rows="15" cols="80" placeholder="코드를 입력하세요..."></textarea>
+  <br>
+  <label for="input">표준 입력 (선택):</label>
+  <textarea id="input" rows="5" cols="80" placeholder="입력값이 있으면 여기에 작성"></textarea>
   <br>
   <button id="run">실행</button>
 
