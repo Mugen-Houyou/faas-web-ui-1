@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Code Runner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Code Runner</h1>
+  <label for="lang">Language:</label>
+  <select id="lang">
+    <option value="python">Python</option>
+    <option value="c">C</option>
+    <option value="cpp">C++</option>
+    <option value="java">Java</option>
+  </select>
+
+  <textarea id="code" rows="15" cols="80" placeholder="코드를 입력하세요..."></textarea>
+  <br>
+  <button id="run">실행</button>
+
+  <h2>결과</h2>
+  <pre id="stdout"></pre>
+  <pre id="stderr" style="color: red;"></pre>
+  <p id="time"></p>
+
+  <script src="app.js"></script>
+</body>
+</html>

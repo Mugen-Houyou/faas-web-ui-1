@@ -1,0 +1,46 @@
+# Editor/IDE 임시 파일
+.vscode/
+.idea/
+*.swp
+
+# Python venv
+backend/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# FastAPI Uvicorn logs
+*.log
+
+# OS별 임시 파일
+.DS_Store
+Thumbs.db
+
+# Build/Compile output
+*.out
+*.class
+
+# Temp files
+*.tmp
+*.temp
+
+# Backend temp dirs
+backend/app/__pycache__/
+backend/app/*.pyc
+backend/app/*.pyo
+
+# Frontend artifacts
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+
+# Test/coverage reports
+htmlcov/
+.coverage
+.tox/
+.pytest_cache/
+
+# 기타
+.env
+*.bak
