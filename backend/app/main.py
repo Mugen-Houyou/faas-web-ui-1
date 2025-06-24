@@ -29,7 +29,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from executor import execute_code, SupportedLanguage
+from .executor import execute_code, SupportedLanguage
 
 app = FastAPI()
 
