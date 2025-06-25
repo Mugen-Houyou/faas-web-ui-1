@@ -23,7 +23,7 @@
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-3. 환경 변수를 필요에 따라 지정합니다.
+3. `.env.example` 파일을 `.env`로 복사한 뒤 값들을 수정합니다.
    - `FAAS_BASE_URL` (기본값 `https://api.example.com/api/v1`)
    - `FAAS_TOKEN` (인증이 필요한 경우)
 4. 서버를 실행합니다.

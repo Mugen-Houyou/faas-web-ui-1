@@ -3,6 +3,10 @@ import asyncio
 from enum import Enum
 from typing import Optional
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 import httpx
 from pydantic import BaseModel
 

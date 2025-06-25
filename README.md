@@ -23,7 +23,7 @@ This project provides a small interface for running code through an external Fun
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-3. Configure environment variables if needed:
+3. Copy `.env.example` to `.env` and set variables as needed:
    - `FAAS_BASE_URL` (default `https://api.example.com/api/v1`)
    - `FAAS_TOKEN` for authenticated access
 4. Launch the server:
