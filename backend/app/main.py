@@ -44,5 +44,7 @@ async def run_code(req: CodeRequest):
             token=req.token,
         )
         return result
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

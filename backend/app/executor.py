@@ -1,20 +1,19 @@
-import os
 import asyncio
+import os
+import time
+import uuid
 from enum import Enum
 from typing import Optional
 
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from dotenv import load_dotenv
 
 # Load ../.env relative to this file so it works regardless of cwd
 env_path = Path(__file__).resolve().parents[2] / ".env"
 load_dotenv(dotenv_path=env_path)
 
-import httpx
 from pydantic import BaseModel
-
-BASE_URL = os.environ.get("FAAS_BASE_URL", "https://api.example.com/api/v1")
-DEFAULT_TOKEN = os.environ.get("FAAS_TOKEN")
 
 
 class SupportedLanguage(str, Enum):
@@ -42,35 +41,44 @@ async def execute_code(
     memory_limit: int = 256,
     token: Optional[str] = None,
 ) -> ExecutionResult:
-    headers = {"Content-Type": "application/json"}
-    token = token or DEFAULT_TOKEN
-    if token:
-        headers["Authorization"] = f"Bearer {token}"
+    """Execute Python code locally. Other languages are not implemented."""
 
-    payload = {
-        "language": lang.value,
-        "code": code,
-        "stdin": stdin,
-        "timeLimit": time_limit,
-        "memoryLimit": memory_limit,
-    }
+    if lang is not SupportedLanguage.python:
+        raise NotImplementedError(f"Language '{lang}' is not supported yet")
 
-    async with httpx.AsyncClient() as client:
-        res = await client.post(f"{BASE_URL}/execute", json=payload, headers=headers)
-        data = res.json()
+    # Save the code to a temporary file and execute it using the system Python
+    with TemporaryDirectory() as tmpdir:
+        file_path = Path(tmpdir) / "main.py"
+        file_path.write_text(code)
 
-        if res.status_code == 202:
-            req_id = data["requestId"]
-            while True:
-                await asyncio.sleep(1)
-                r = await client.get(f"{BASE_URL}/execute/{req_id}", headers=headers)
-                data = r.json()
-                if r.status_code == 202:
-                    continue
-                res = r
-                break
+        start = time.perf_counter()
+        process = await asyncio.create_subprocess_exec(
+            "python3",
+            str(file_path),
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
 
-        if res.status_code != 200:
-            raise RuntimeError(data.get("error") or "Execution failed")
+        timed_out = False
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                process.communicate(stdin.encode()), timeout=time_limit / 1000
+            )
+        except asyncio.TimeoutError:
+            process.kill()
+            stdout, stderr = await process.communicate()
+            timed_out = True
 
-    return ExecutionResult(**data)
+        duration = time.perf_counter() - start
+        exit_code = process.returncode if process.returncode is not None else -1
+
+        return ExecutionResult(
+            requestId=str(uuid.uuid4()),
+            stdout=stdout.decode(),
+            stderr=stderr.decode(),
+            exitCode=exit_code,
+            duration=duration,
+            memoryUsed=0,
+            timedOut=timed_out,
+        )
