@@ -1,8 +1,9 @@
 """Simple code execution API used by the frontend.
 
-The backend compiles supported languages and runs the resulting program
-locally. Unsupported languages raise ``NotImplementedError`` which results in
-a ``501 Not Implemented`` response. Run with ``uvicorn app.main:app``.
+The backend compiles supported languages (Python, C, C++, and Java) and runs
+the resulting program locally. Unsupported languages raise
+``NotImplementedError`` which results in a ``501 Not Implemented`` response.
+Run with ``uvicorn app.main:app``.
 """
 
 from fastapi import FastAPI, HTTPException

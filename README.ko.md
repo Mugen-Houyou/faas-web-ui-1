@@ -2,8 +2,7 @@
 
 간단한 `/execute` API를 통해 코드를 실행할 수 있는 인터페이스입니다.
 
-- Python, C, C++ 코드를 실행
-- Java 지원은 준비 중
+- Python, C, C++, Java 코드를 실행
 - 지원하지 않는 언어는 **501 Not Implemented** 응답
 - 백엔드는 코드를 컴파일한 뒤 로컬에서 실행
 - 정적 파일은 `frontend` 디렉터리에 위치
@@ -29,7 +28,11 @@
    sudo apt update
    sudo apt install build-essential
    ```
-4. 서버를 실행합니다.
+4. OpenJDK 설치(Ubuntu 22.04 LTS 기준):
+   ```bash
+   sudo apt install openjdk-17-jdk
+   ```
+5. 서버를 실행합니다.
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```

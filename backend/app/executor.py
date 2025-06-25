@@ -7,6 +7,9 @@ from typing import Optional
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+import tempfile
+import shutil
+import re
 from dotenv import load_dotenv
 import psutil
 
@@ -68,6 +71,25 @@ async def compile_code(
         os.remove(src.name)
         return exe_path
 
+    if lang is SupportedLanguage.java:
+        match = re.search(r"public\s+class\s+(\w+)", code)
+        class_name = match.group(1) if match else "Main"
+        tmpdir = Path(tempfile.mkdtemp())
+        src_path = tmpdir / f"{class_name}.java"
+        with open(src_path, "w") as f:
+            f.write(code)
+        process = await asyncio.create_subprocess_exec(
+            "javac",
+            str(src_path),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+            raise RuntimeError(stderr.decode() or "Compilation failed")
+        return tmpdir / f"{class_name}.class"
+
     raise NotImplementedError(f"Compilation for '{lang}' is not supported yet")
 
 
@@ -84,6 +106,13 @@ async def run_code(
         cmd = ["python3", str(file_path)]
     elif lang in (SupportedLanguage.c, SupportedLanguage.cpp):
         cmd = [str(file_path)]
+    elif lang is SupportedLanguage.java:
+        cmd = [
+            "java",
+            "-cp",
+            str(file_path.parent),
+            file_path.stem,
+        ]
     else:
         raise NotImplementedError(f"Execution for '{lang}' is not supported yet")
 
@@ -155,7 +184,10 @@ async def execute_code(
         result = await run_code(lang, file_path, stdin, time_limit, memory_limit)
     finally:
         try:
-            os.remove(file_path)
+            if lang is SupportedLanguage.java:
+                shutil.rmtree(file_path.parent, ignore_errors=True)
+            else:
+                os.remove(file_path)
         except OSError:
             pass
 
