@@ -1,0 +1,46 @@
+body {
+  font-family: Arial, sans-serif;
+  max-width: 800px;
+  margin: auto;
+  padding: 20px;
+}
+
+label {
+  display: block;
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+textarea,
+input[type="text"],
+input[type="number"],
+select {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 4px;
+}
+
+.inline {
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.form-group {
+  margin-top: 10px;
+}
+
+#run {
+  margin-top: 12px;
+  padding: 6px 16px;
+}
+
+pre {
+  background: #f4f4f4;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
+pre.error {
+  color: red;
+}
