@@ -5,10 +5,19 @@ do not match your environment. Run with ``uvicorn app.main:app``.
 """
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from .executor import execute_code, SupportedLanguage, ExecutionResult
 
 app = FastAPI()
+
+# allow requests from any origin (use env vars to restrict in production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class CodeRequest(BaseModel):
     language: SupportedLanguage
