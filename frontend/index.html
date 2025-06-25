@@ -8,21 +8,21 @@
 <body>
   <h1>Code Runner</h1>
 
-  <label for="lang">Language:</label>
+  <label for="lang">언어:</label>
   <select id="lang">
     <option value="python">Python</option>
+    <option value="java">Java</option>
     <option value="c">C</option>
     <option value="cpp">C++</option>
-    <option value="java">Java</option>
   </select>
 
   <div class="form-group">
-    <label for="apiUrl">API URL:</label>
+    <label for="apiUrl">API 엔드포인트 URL:</label>
     <input id="apiUrl" type="text" value="http://localhost:8000">
   </div>
 
   <div class="form-group">
-    <label for="token">JWT Token:</label>
+    <label for="token">JWT 토큰 (필요 시):</label>
     <input id="token" type="text" placeholder="Bearer token">
   </div>
 
@@ -47,7 +47,7 @@
     </div>
   </div>
 
-  <button id="run">실행</button>
+  <button id="run">실행!</button>
 
   <h2>결과</h2>
   <pre id="stdout"></pre>
