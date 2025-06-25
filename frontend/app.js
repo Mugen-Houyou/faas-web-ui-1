@@ -1,4 +1,7 @@
-const BASE_URL = "https://api.example.com/api/v1";
+function getBaseUrl() {
+  const url = document.getElementById("apiUrl").value.trim();
+  return url || "https://api.example.com/api/v1";
+}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -15,7 +18,7 @@ function displayResult(data) {
 async function pollResult(token, requestId) {
   while (true) {
     await sleep(1000);
-    const res = await fetch(`${BASE_URL}/execute/${requestId}`, {
+    const res = await fetch(`${getBaseUrl()}/execute/${requestId}`, {
       headers: { Authorization: token ? `Bearer ${token}` : "" },
     });
     const data = await res.json();
@@ -48,7 +51,7 @@ document.getElementById("run").addEventListener("click", async () => {
   if (!isNaN(timeLimit)) body.timeLimit = timeLimit;
   if (!isNaN(memoryLimit)) body.memoryLimit = memoryLimit;
 
-  const res = await fetch(`${BASE_URL}/execute`, {
+  const res = await fetch(`${getBaseUrl()}/execute`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
