@@ -8,6 +8,7 @@ from typing import Optional
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from dotenv import load_dotenv
+import psutil
 
 # Load ../.env relative to this file so it works regardless of cwd
 env_path = Path(__file__).resolve().parents[2] / ".env"
@@ -94,6 +95,26 @@ async def run_code(
         stderr=asyncio.subprocess.PIPE,
     )
 
+    async def _track_memory_usage(pid: int) -> int:
+        """Return peak RSS in bytes for the given process."""
+        peak = 0
+        try:
+            proc = psutil.Process(pid)
+        except psutil.Error:
+            return peak
+        while True:
+            try:
+                mem = proc.memory_info().rss
+                peak = max(peak, mem)
+                if not proc.is_running():
+                    break
+            except psutil.NoSuchProcess:
+                break
+            await asyncio.sleep(0.05)
+        return peak
+
+    mem_task = asyncio.create_task(_track_memory_usage(process.pid))
+
     timed_out = False
     try:
         stdout, stderr = await asyncio.wait_for(
@@ -106,6 +127,7 @@ async def run_code(
 
     duration = time.perf_counter() - start
     exit_code = process.returncode if process.returncode is not None else -1
+    peak_rss = await mem_task
 
     return ExecutionResult(
         requestId=str(uuid.uuid4()),
@@ -113,7 +135,7 @@ async def run_code(
         stderr=stderr.decode(),
         exitCode=exit_code,
         duration=duration,
-        memoryUsed=0,
+        memoryUsed=int(peak_rss / (1024 * 1024)),
         timedOut=timed_out,
     )
 
