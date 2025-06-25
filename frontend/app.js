@@ -1,32 +1,74 @@
-/*
-실행 방법:
+const BASE_URL = "https://api.example.com/api/v1";
 
-단순 정적 파일이므로 `frontend/` 디렉터리를 브라우저로 열거나, `python -m http.server` 등을 이용해 서빙하세요.
-Python 백엔드가 먼저 실행되어 있어야 합니다.
-*/
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
+function displayResult(data) {
+  document.getElementById("stdout").textContent = data.stdout || "";
+  document.getElementById("stderr").textContent = data.stderr || "";
+  document.getElementById("metrics").textContent =
+    `exitCode: ${data.exitCode}, duration: ${data.duration.toFixed(3)}s, ` +
+    `memory: ${data.memoryUsed}MB, timedOut: ${data.timedOut}`;
+}
+
+async function pollResult(token, requestId) {
+  while (true) {
+    await sleep(1000);
+    const res = await fetch(`${BASE_URL}/execute/${requestId}`, {
+      headers: { Authorization: token ? `Bearer ${token}` : "" },
+    });
+    const data = await res.json();
+    if (res.status === 202) {
+      continue;
+    } else if (res.status === 200) {
+      displayResult(data);
+      break;
+    } else {
+      document.getElementById("stderr").textContent = data.error || "Error";
+      break;
+    }
+  }
+}
 
 document.getElementById("run").addEventListener("click", async () => {
   const lang = document.getElementById("lang").value;
   const code = document.getElementById("code").value;
+  const stdin = document.getElementById("stdin").value;
+  const token = document.getElementById("token").value.trim();
+  const timeLimit = parseInt(document.getElementById("timeLimit").value);
+  const memoryLimit = parseInt(document.getElementById("memoryLimit").value);
 
   document.getElementById("stdout").textContent = "실행 중...";
   document.getElementById("stderr").textContent = "";
-  document.getElementById("time").textContent = "";
+  document.getElementById("metrics").textContent = "";
 
-  try {
-    const res = await fetch("http://localhost:8000/execute", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ language: lang, code, timeout: 5.0 })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Unknown error");
+  const body = { language: lang, code };
+  if (stdin) body.stdin = stdin;
+  if (!isNaN(timeLimit)) body.timeLimit = timeLimit;
+  if (!isNaN(memoryLimit)) body.memoryLimit = memoryLimit;
 
-    document.getElementById("stdout").textContent = data.stdout;
-    document.getElementById("stderr").textContent = data.stderr;
-    document.getElementById("time").textContent = `실행 시간: ${data.exec_time.toFixed(3)} 초`;
-  } catch (err) {
-    document.getElementById("stderr").textContent = err.message;
+  const res = await fetch(`${BASE_URL}/execute`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: token ? `Bearer ${token}` : "",
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+
+  if (res.status === 202) {
+    await pollResult(token, data.requestId);
+    return;
   }
+
+  if (!res.ok) {
+    document.getElementById("stderr").textContent =
+      data.error || data.detail || "Error";
+    document.getElementById("stdout").textContent = "";
+    return;
+  }
+
+  displayResult(data);
 });

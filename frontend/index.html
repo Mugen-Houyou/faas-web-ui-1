@@ -15,14 +15,31 @@
     <option value="java">Java</option>
   </select>
 
+  <div>
+    <label for="token">JWT Token:</label>
+    <input id="token" type="text" placeholder="Bearer token">
+  </div>
+
   <textarea id="code" rows="15" cols="80" placeholder="코드를 입력하세요..."></textarea>
-  <br>
+
+  <div>
+    <label for="stdin">STDIN:</label>
+    <textarea id="stdin" rows="5" cols="80" placeholder="입력 데이터..."></textarea>
+  </div>
+
+  <div>
+    <label for="timeLimit">Time Limit (ms):</label>
+    <input id="timeLimit" type="number" value="30000">
+    <label for="memoryLimit">Memory Limit (MB):</label>
+    <input id="memoryLimit" type="number" value="256">
+  </div>
+
   <button id="run">실행</button>
 
   <h2>결과</h2>
   <pre id="stdout"></pre>
   <pre id="stderr" style="color: red;"></pre>
-  <p id="time"></p>
+  <p id="metrics"></p>
 
   <script src="app.js"></script>
 </body>
