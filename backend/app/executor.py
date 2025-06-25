@@ -1,6 +1,14 @@
-import subprocess, tempfile, os, time
+import os
+import asyncio
 from enum import Enum
+from typing import Optional
+
+import httpx
 from pydantic import BaseModel
+
+BASE_URL = os.environ.get("FAAS_BASE_URL", "https://api.example.com/api/v1")
+DEFAULT_TOKEN = os.environ.get("FAAS_TOKEN")
+
 
 class SupportedLanguage(str, Enum):
     c = "c"
@@ -8,47 +16,54 @@ class SupportedLanguage(str, Enum):
     java = "java"
     python = "python"
 
+
 class ExecutionResult(BaseModel):
+    requestId: str
     stdout: str
     stderr: str
-    exec_time: float
+    exitCode: int
+    duration: float
+    memoryUsed: int
+    timedOut: bool
 
-def execute_code(lang: SupportedLanguage, code: str, timeout: float) -> ExecutionResult:
-    with tempfile.TemporaryDirectory() as td:
-        if lang == SupportedLanguage.python:
-            src = os.path.join(td, "main.py")
-            with open(src, "w") as f: f.write(code)
-            cmd = ["python3", src]
 
-        elif lang == SupportedLanguage.c:
-            src = os.path.join(td, "main.c")
-            exe = os.path.join(td, "main.out")
-            with open(src, "w") as f: f.write(code)
-            subprocess.run(["gcc", src, "-o", exe], check=True, capture_output=True)
-            cmd = [exe]
+async def execute_code(
+    lang: SupportedLanguage,
+    code: str,
+    stdin: str = "",
+    time_limit: int = 30000,
+    memory_limit: int = 256,
+    token: Optional[str] = None,
+) -> ExecutionResult:
+    headers = {"Content-Type": "application/json"}
+    token = token or DEFAULT_TOKEN
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
 
-        elif lang == SupportedLanguage.cpp:
-            src = os.path.join(td, "main.cpp")
-            exe = os.path.join(td, "main.out")
-            with open(src, "w") as f: f.write(code)
-            subprocess.run(["g++", src, "-o", exe], check=True, capture_output=True)
-            cmd = [exe]
+    payload = {
+        "language": lang.value,
+        "code": code,
+        "stdin": stdin,
+        "timeLimit": time_limit,
+        "memoryLimit": memory_limit,
+    }
 
-        elif lang == SupportedLanguage.java:
-            src = os.path.join(td, "Main.java")
-            with open(src, "w") as f: f.write(code)
-            subprocess.run(["javac", src], check=True, capture_output=True)
-            cmd = ["java", "-cp", td, "Main"]
+    async with httpx.AsyncClient() as client:
+        res = await client.post(f"{BASE_URL}/execute", json=payload, headers=headers)
+        data = res.json()
 
-        else:
-            raise ValueError(f"Unsupported language: {lang}")
+        if res.status_code == 202:
+            req_id = data["requestId"]
+            while True:
+                await asyncio.sleep(1)
+                r = await client.get(f"{BASE_URL}/execute/{req_id}", headers=headers)
+                data = r.json()
+                if r.status_code == 202:
+                    continue
+                res = r
+                break
 
-        start = time.time()
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-        elapsed = time.time() - start
+        if res.status_code != 200:
+            raise RuntimeError(data.get("error") or "Execution failed")
 
-        return ExecutionResult(
-            stdout=proc.stdout,
-            stderr=proc.stderr,
-            exec_time=elapsed
-        )
+    return ExecutionResult(**data)
