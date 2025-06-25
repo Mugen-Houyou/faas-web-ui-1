@@ -44,6 +44,29 @@ async def compile_code(
         tmp.close()
         return Path(tmp.name)
 
+    if lang in (SupportedLanguage.c, SupportedLanguage.cpp):
+        suffix = ".c" if lang is SupportedLanguage.c else ".cpp"
+        src = NamedTemporaryFile("w", suffix=suffix, delete=False)
+        src.write(code)
+        src.close()
+        exe_path = Path(src.name).with_suffix("")
+        compiler = "gcc" if lang is SupportedLanguage.c else "g++"
+        process = await asyncio.create_subprocess_exec(
+            compiler,
+            src.name,
+            "-O2",
+            "-o",
+            str(exe_path),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            os.remove(src.name)
+            raise RuntimeError(stderr.decode() or "Compilation failed")
+        os.remove(src.name)
+        return exe_path
+
     raise NotImplementedError(f"Compilation for '{lang}' is not supported yet")
 
 
@@ -56,13 +79,16 @@ async def run_code(
 ) -> ExecutionResult:
     """Run previously compiled code and return the execution result."""
 
-    if lang is not SupportedLanguage.python:
+    if lang is SupportedLanguage.python:
+        cmd = ["python3", str(file_path)]
+    elif lang in (SupportedLanguage.c, SupportedLanguage.cpp):
+        cmd = [str(file_path)]
+    else:
         raise NotImplementedError(f"Execution for '{lang}' is not supported yet")
 
     start = time.perf_counter()
     process = await asyncio.create_subprocess_exec(
-        "python3",
-        str(file_path),
+        *cmd,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
