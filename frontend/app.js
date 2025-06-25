@@ -1,6 +1,6 @@
 function getBaseUrl() {
   const url = document.getElementById("apiUrl").value.trim();
-  return url || "https://api.example.com/api/v1";
+  return url || "http://localhost:8000";
 }
 
 function sleep(ms) {

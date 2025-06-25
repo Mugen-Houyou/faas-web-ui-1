@@ -40,9 +40,10 @@ python -m http.server 8080
 ```
 Then navigate to `http://localhost:8080`.
 
-The frontend includes a field to set the FaaS API URL. It defaults to
-`https://api.example.com/api/v1`, but you can change it to point to your local
-backend or another endpoint before running code.
+The frontend includes a field to set the API URL. It defaults to
+`http://localhost:8000`, which targets the provided FastAPI backend.
+If you point it directly to the remote FaaS service, ensure that service
+supports CORS or you may encounter browser errors.
 
 ## Usage
 Enter your JWT token (if required), choose a language, provide code and optional STDIN, and click **Run**. The page sends the request to the FaaS API and displays the output along with exit code, execution time, and memory usage. Long-running jobs are polled until they finish.
