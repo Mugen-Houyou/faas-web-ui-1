@@ -1,10 +1,10 @@
 # FaaS Web UI
 
-원격 Function‑as‑a‑Service(FaaS) 실행 API와 통신하는 간단한 코드 실행 인터페이스입니다.
+간단한 `/execute` API를 통해 코드를 실행할 수 있는 인터페이스입니다.
 
-- Python, C, C++, Java 코드 실행 지원
-- API의 `POST /execute` 엔드포인트와 통신
-- 요청을 중계하는 FastAPI 백엔드(`backend`)를 선택적으로 사용 가능
+- Python, C, C++ 코드를 실행
+- 지원하지 않는 언어는 **501 Not Implemented** 응답
+- 백엔드는 코드를 컴파일한 뒤 로컬에서 실행
 - 정적 파일은 `frontend` 디렉터리에 위치
 
 ## 요구 사항
@@ -23,10 +23,7 @@
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-3. `.env.example` 파일을 `.env`로 복사한 뒤 값들을 수정합니다.
-   - `FAAS_BASE_URL` (기본값 `https://api.example.com/api/v1`)
-   - `FAAS_TOKEN` (인증이 필요한 경우)
-4. 서버를 실행합니다.
+3. 서버를 실행합니다.
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
@@ -42,10 +39,10 @@ python -m http.server 8080
 
 프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은
 `http://localhost:8000`으로 FastAPI 백엔드를 가리킵니다.
-직접 FaaS 서비스에 연결하려면 해당 서비스가 CORS를 지원해야 합니다.
+다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다.
 
 ## 사용법
-JWT 토큰이 필요한 경우 입력한 뒤 언어와 코드를 작성하고 STDIN이 있다면 함께 입력합니다. **실행** 버튼을 누르면 FaaS API가 호출되고, 종료 시까지 자동으로 폴링하여 출력, 종료 코드, 실행 시간, 메모리 사용량을 보여줍니다.
+JWT 토큰이 필요한 경우 입력한 뒤 언어와 코드를 작성하고 STDIN이 있다면 함께 입력합니다. **실행** 버튼을 누르면 백엔드가 코드를 컴파일하고 로컬에서 실행해 결과를 돌려줍니다.
 
 ## 라이선스
 이 저장소에는 별도의 라이선스 파일이 포함되어 있지 않습니다.

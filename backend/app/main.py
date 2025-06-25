@@ -1,7 +1,8 @@
-"""Backend API that proxies code execution requests to a remote FaaS service.
+"""Simple code execution API used by the frontend.
 
-Set ``FAAS_BASE_URL`` and ``FAAS_TOKEN`` environment variables if the defaults
-do not match your environment. Run with ``uvicorn app.main:app``.
+The backend compiles supported languages and runs the resulting program
+locally. Unsupported languages raise ``NotImplementedError`` which results in
+a ``501 Not Implemented`` response. Run with ``uvicorn app.main:app``.
 """
 
 from fastapi import FastAPI, HTTPException

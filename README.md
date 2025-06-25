@@ -1,10 +1,10 @@
 # FaaS Web UI
 
-This project provides a small interface for running code through an external Function‑as‑a‑Service (FaaS) execution API.
+This project provides a small interface for running code through a simple `/execute` API.
 
-- Execute Python, C, C++, and Java code
-- Communicates with the API's `POST /execute` endpoint
-- Optional FastAPI proxy in `backend`
+- Execute Python, C, and C++ code
+- Unsupported languages return **501 Not Implemented**
+- The backend compiles the source and then runs the result locally
 - Static frontend located in the `frontend` directory
 
 ## Requirements
@@ -23,10 +23,7 @@ This project provides a small interface for running code through an external Fun
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-3. Copy `.env.example` to `.env` and set variables as needed:
-   - `FAAS_BASE_URL` (default `https://api.example.com/api/v1`)
-   - `FAAS_TOKEN` for authenticated access
-4. Launch the server:
+3. Launch the server:
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
@@ -42,11 +39,11 @@ Then navigate to `http://localhost:8080`.
 
 The frontend includes a field to set the API URL. It defaults to
 `http://localhost:8000`, which targets the provided FastAPI backend.
-If you point it directly to the remote FaaS service, ensure that service
-supports CORS or you may encounter browser errors.
+If you point it directly to a different server, ensure that CORS is enabled
+or your browser may block the requests.
 
 ## Usage
-Enter your JWT token (if required), choose a language, provide code and optional STDIN, and click **Run**. The page sends the request to the FaaS API and displays the output along with exit code, execution time, and memory usage. Long-running jobs are polled until they finish.
+Enter your JWT token (if required), choose a language, provide code and optional STDIN, and click **Run**. The request is sent to the backend which compiles the code and runs it locally. The result shows the program output, exit code, and execution time.
 
 ## Korean Version
 See [README.ko.md](README.ko.md).
