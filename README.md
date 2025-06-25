@@ -1,18 +1,38 @@
 # FaaS Web UI
 
-This repository contains a simple code runner. The frontend communicates with
-an external FaaS-based execution service via REST API.
+This project provides a small interface for running code through an external Function‑as‑a‑Service (FaaS) execution API.
 
 - Execute Python, C, C++, and Java code
-- Calls `POST /execute` on the remote API
+- Communicates with the API's `POST /execute` endpoint
+- Optional FastAPI proxy in `backend`
 - Static frontend located in the `frontend` directory
 
 ## Requirements
-Only a web browser is required to use the frontend. The execution backend is
-hosted separately.
+- Web browser for the frontend
+- Python 3.11 for the optional backend
+
+## Backend Setup (optional)
+1. Create and activate a virtual environment:
+   ```bash
+   cd backend
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
+2. Install dependencies:
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements.txt
+   ```
+3. Configure environment variables if needed:
+   - `FAAS_BASE_URL` (default `https://api.example.com/api/v1`)
+   - `FAAS_TOKEN` for authenticated access
+4. Launch the server:
+   ```bash
+   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   ```
 
 ## Frontend Setup
-The frontend consists of static files. Open `frontend/index.html` directly in a browser or serve it with a simple HTTP server:
+Open `frontend/index.html` directly in a browser or serve the directory with a simple HTTP server:
 
 ```bash
 cd frontend
@@ -21,10 +41,10 @@ python -m http.server 8080
 Then navigate to `http://localhost:8080`.
 
 ## Usage
-Enter your JWT token, select a language, provide code and optional STDIN, then click **Run**. The page will call the remote FaaS API and display the result.
+Enter your JWT token (if required), choose a language, provide code and optional STDIN, and click **Run**. The page sends the request to the FaaS API and displays the output along with exit code, execution time, and memory usage. Long-running jobs are polled until they finish.
 
 ## Korean Version
-For a Korean version of this document, see [README.ko.md](README.ko.md).
+See [README.ko.md](README.ko.md).
 
 ## License
 No license file is provided.
