@@ -11,10 +11,15 @@ from .executor import execute_code, SupportedLanguage, ExecutionResult
 
 app = FastAPI()
 
+# CORS 설정 (필요에 따라 origins 수정)
 # allow requests from any origin (use env vars to restrict in production)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+    "http://localhost",
+    "http://localhost:3000", # 배포 시 프론트엔드 주소 - maybe?
+    "http://localhost:8080", # 배포 시 프론트엔드 주소 - maybe?
+    "http://localhost:8000", ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
