@@ -3,6 +3,7 @@
 This project provides a small interface for running code through a simple `/execute` API.
 
 - Execute Python, C, and C++ code
+- Support for Java is planned
 - Unsupported languages return **501 Not Implemented**
 - The backend compiles the source and then runs the result locally
 - Static frontend located in the `frontend` directory
@@ -23,7 +24,12 @@ This project provides a small interface for running code through a simple `/exec
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-3. Launch the server:
+3. Install C/C++ compilers (Ubuntu 22.04 LTS):
+   ```bash
+   sudo apt update
+   sudo apt install build-essential
+   ```
+4. Launch the server:
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
