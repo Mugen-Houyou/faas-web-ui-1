@@ -1,17 +1,17 @@
-# FaaS Web UI
+# Codeground 온라인 저지
 
-간단한 `/execute` API를 통해 코드를 실행할 수 있는 인터페이스입니다.
+`POST /execute` API를 통해 코드를 실행할 수 있도록 구성되었습니다. 이 코드베이스는 데모용 프론트엔드 (`frontend`), FastAPI 백엔드 (`online_judge_backend\main.py`), 그리고 워커 프로세스 (`online_judge_backend\worker.py`)로 구성되어 있습니다. `backend` 폴더는 추후 삭제 예정이므로 무시해주세요.
 
 - Python, Java, C, C++ 코드를 실행
 - 지원하지 않는 언어는 **501 Not Implemented** 응답
-- 백엔드(`online_judge_backend` 폴더)는 FastAPI 기반 `/execute` API를 제공하며
-  RabbitMQ로 작업을 워커에 전달합니다.
+- 백엔드(`online_judge_backend` 폴더)는 FastAPI 기반 `/execute` API를 제공하며 RabbitMQ로 작업을 워커에 전달합니다.
 - 워커는 `python -m online_judge_backend.app.worker` 명령으로 실행합니다.
 - 프론트엔드(`frontend` 폴더)는 백엔드를 사용할 수 있는 데모 웹 UI입니다.
 
 ## 요구 사항
 - 프론트엔드를 사용하려면 웹 브라우저만 있으면 됩니다.
 - 백엔드를 사용하려면 Python 3.11이 필요하며 후술할 C, C++ 컴파일러, JDK 등이 필요합니다.
+- RabbitMQ로 비동기 처리할 것을 상정하여 작성되었으므로 RabbitMQ 서버가 준비되어 있어야 합니다.
 
 ## 백엔드 설정
 1. 가상 환경을 생성하고 활성화합니다.
