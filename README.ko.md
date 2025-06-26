@@ -4,8 +4,10 @@
 
 - Python, Java, C, C++ 코드를 실행
 - 지원하지 않는 언어는 **501 Not Implemented** 응답
-- 백엔드 (`backend` 폴더)는 코드를 컴파일한 뒤 실행, 결과 반환
-- 프론트엔드 (`frontend` 폴더)는 백엔드를 사용할 수 있는 데모 웹 UI
+- 백엔드(`online_judge_backend` 폴더)는 FastAPI 기반 `/execute` API를 제공하며
+  RabbitMQ로 작업을 워커에 전달합니다.
+- 워커는 `python -m online_judge_backend.app.worker` 명령으로 실행합니다.
+- 프론트엔드(`frontend` 폴더)는 백엔드를 사용할 수 있는 데모 웹 UI입니다.
 
 ## 요구 사항
 - 프론트엔드를 사용하려면 웹 브라우저만 있으면 됩니다.
@@ -14,7 +16,7 @@
 ## 백엔드 설정(선택 사항)
 1. 가상 환경을 생성하고 활성화합니다.
    ```bash
-   cd backend
+   cd online_judge_backend
    python3 -m venv venv
    source venv/bin/activate
    ```
@@ -32,10 +34,18 @@
    ```bash
    sudo apt install openjdk-17-jdk
    ```
-5. 서버를 실행합니다.
+5. RabbitMQ 서버를 실행합니다. 기본 주소는 `amqp://guest:guest@localhost/`이며
+   `RABBITMQ_URL` 환경 변수로 변경할 수 있습니다. (예: 로컬에서
+   [docker](https://hub.docker.com/_/rabbitmq) 사용)
+6. 워커 프로세스를 실행합니다.
    ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   python -m online_judge_backend.app.worker
    ```
+7. API 서버를 실행합니다.
+   ```bash
+   uvicorn online_judge_backend.app.main:app --host 0.0.0.0 --port 8000
+   ```
+   자세한 설정 과정은 [docs/README.ko.md](docs/README.ko.md) 문서를 참고하세요.
 
 ## 프론트엔드 실행
 `frontend/index.html`을 브라우저로 직접 열거나 간단한 HTTP 서버를 이용해 제공할 수 있습니다.
