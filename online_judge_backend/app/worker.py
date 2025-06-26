@@ -2,7 +2,13 @@ import asyncio
 import json
 import os
 
+from pathlib import Path
+from dotenv import load_dotenv
 import aio_pika
+
+# Load ../.env relative to this file so it works regardless of cwd
+env_path = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(dotenv_path=env_path)
 
 from .executor import execute_code_multiple, SupportedLanguage
 
