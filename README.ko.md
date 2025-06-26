@@ -13,7 +13,7 @@
 - 프론트엔드를 사용하려면 웹 브라우저만 있으면 됩니다.
 - 백엔드를 사용하려면 Python 3.11이 필요하며 후술할 C, C++ 컴파일러, JDK 등이 필요합니다.
 
-## 백엔드 설정(선택 사항)
+## 백엔드 설정
 1. 가상 환경을 생성하고 활성화합니다.
    ```bash
    cd online_judge_backend
@@ -41,7 +41,7 @@
    ```bash
    python -m online_judge_backend.app.worker
    ```
-7. API 서버를 실행합니다.
+7. FastAPI 백엔드를 실행합니다.
    ```bash
    uvicorn online_judge_backend.app.main:app --host 0.0.0.0 --port 8000
    ```
@@ -62,6 +62,9 @@ JWT 토큰을 입력한 뒤 언어와 코드를 작성하고 STDIN이 있다면 
 
 ## REST API 명세
 REST API의 세부 규격은 [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) 파일을 참고하세요.
+
+## RabbitMQ 서버 기반 비동기 처리
+이 코드베이스는 **RabbitMQ 서버 기반 비동기 처리**를 상정하여 구성되었습니다. [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/API.ko.md) 파일을 참고하세요.
 
 ## 라이선스
 이 저장소에는 별도의 라이선스 파일이 포함되어 있지 않습니다.
