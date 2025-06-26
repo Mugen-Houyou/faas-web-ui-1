@@ -15,7 +15,7 @@ import psutil
 
 # Load ../.env relative to this file so it works regardless of cwd
 env_path = Path(__file__).resolve().parents[2] / ".env"
-load_dotenv(dotenv_path=env_path)
+load_dotenv(dotenv_path=env_path, override=True)
 
 from pydantic import BaseModel
 
