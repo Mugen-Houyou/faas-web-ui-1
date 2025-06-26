@@ -52,7 +52,10 @@ If you point it directly to a different server, ensure that CORS is enabled
 or your browser may block the requests.
 
 ## Usage
-Enter your JWT token (if required), choose a language, provide code and optional STDIN, and click **Run**. The request is sent to the backend which compiles the code and runs it locally. The result shows the program output, exit code, and execution time.
+Enter your JWT token (if required), choose a language, provide code and optional STDIN blocks separated by blank lines, and click **Run**. Each block may contain multiple lines. The request is sent to the backend which compiles the code and runs it once per block. The result shows the program output(s), exit code, and execution time.
+
+## REST API Specification
+See [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) for details on the HTTP API.
 
 ## Korean Version
 See [README.ko.md](README.ko.md).

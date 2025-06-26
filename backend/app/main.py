@@ -9,7 +9,13 @@ Run with ``uvicorn app.main:app``.
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from pathlib import Path
+from dotenv import load_dotenv
 from .executor import execute_code, SupportedLanguage, ExecutionResult
+
+# Load ../.env relative to this file so it works regardless of cwd
+env_path = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI()
 

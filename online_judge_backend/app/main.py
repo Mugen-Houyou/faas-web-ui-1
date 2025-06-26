@@ -8,8 +8,19 @@ Run with ``uvicorn app.main:app``.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from typing import List
 from pydantic import BaseModel
-from .executor import execute_code, SupportedLanguage, ExecutionResult
+from pathlib import Path
+from dotenv import load_dotenv
+from .executor import (
+    execute_code_multiple,
+    SupportedLanguage,
+    ExecutionResult,
+)
+
+# Load ../.env relative to this file so it works regardless of cwd
+env_path = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI()
 
@@ -29,23 +40,23 @@ app.add_middleware(
 class CodeRequest(BaseModel):
     language: SupportedLanguage
     code: str
-    stdin: str = ""
+    stdins: List[str] = []
     timeLimit: int = 30000
     memoryLimit: int = 256
     token: str | None = None
 
-@app.post("/execute", response_model=ExecutionResult)
+@app.post("/execute", response_model=list[ExecutionResult])
 async def run_code(req: CodeRequest):
     try:
-        result = await execute_code(
+        results = await execute_code_multiple(
             lang=req.language,
             code=req.code,
-            stdin=req.stdin,
+            stdins=req.stdins,
             time_limit=req.timeLimit,
             memory_limit=req.memoryLimit,
             token=req.token,
         )
-        return result
+        return results
     except NotImplementedError as e:
         raise HTTPException(status_code=501, detail=str(e))
     except Exception as e:
