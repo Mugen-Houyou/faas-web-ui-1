@@ -38,14 +38,14 @@
     "stdout": "output",
     "stderr": "",
     "exitCode": 0,
-    "duration": 0.12,
-    "memoryUsed": 12,
+    "duration": 120,
+    "memoryUsed": 12288,
     "timedOut": false
   }
 ]
 ```
-- `duration`: 실행 시간(초)
-- `memoryUsed`: 사용한 메모리(MB)
+- `duration`: 실행 시간(ms)
+- `memoryUsed`: 사용한 메모리(KB)
 - 지원하지 않는 언어일 경우 `501 Not Implemented`
 - 잘못된 요청 등 기타 오류 시 `400 Bad Request`
 
