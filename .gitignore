@@ -4,6 +4,7 @@
 *.swp
 
 # Python venv
+online_judge_backend/venv/
 backend/venv/
 __pycache__/
 *.pyc
@@ -24,6 +25,11 @@ Thumbs.db
 # Temp files
 *.tmp
 *.temp
+
+# Online Judege Backend temp dirs
+online_judge_backend/app/__pycache__/
+online_judge_backend/app/*.pyc
+online_judge_backend/app/*.pyo
 
 # Backend temp dirs
 backend/app/__pycache__/
