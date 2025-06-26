@@ -7,12 +7,29 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function displayResult(data) {
-  document.getElementById("stdout").textContent = data.stdout || "";
-  document.getElementById("stderr").textContent = data.stderr || "";
-  document.getElementById("metrics").textContent =
-    `exitCode: ${data.exitCode}, duration: ${data.duration.toFixed(3)}s, ` +
-    `memory: ${data.memoryUsed}MB, timedOut: ${data.timedOut}`;
+function displayResults(data) {
+  if (Array.isArray(data)) {
+    const out = data.map((r, i) => `#${i + 1}\n${r.stdout || ""}`).join("\n---\n");
+    const err = data
+      .map((r) => r.stderr)
+      .filter((s) => s)
+      .join("\n---\n");
+    const met = data
+      .map(
+        (r, i) =>
+          `#${i + 1} exitCode: ${r.exitCode}, duration: ${r.duration.toFixed(3)}s, memory: ${r.memoryUsed}MB, timedOut: ${r.timedOut}`
+      )
+      .join("\n");
+    document.getElementById("stdout").textContent = out;
+    document.getElementById("stderr").textContent = err;
+    document.getElementById("metrics").textContent = met;
+  } else {
+    document.getElementById("stdout").textContent = data.stdout || "";
+    document.getElementById("stderr").textContent = data.stderr || "";
+    document.getElementById("metrics").textContent =
+      `exitCode: ${data.exitCode}, duration: ${data.duration.toFixed(3)}s, ` +
+      `memory: ${data.memoryUsed}MB, timedOut: ${data.timedOut}`;
+  }
 }
 
 async function pollResult(token, requestId) {
@@ -25,7 +42,7 @@ async function pollResult(token, requestId) {
     if (res.status === 202) {
       continue;
     } else if (res.status === 200) {
-      displayResult(data);
+      displayResults(data);
       break;
     } else {
       document.getElementById("stderr").textContent = data.error || "Error";
@@ -49,7 +66,8 @@ document.getElementById("run").addEventListener("click", async () => {
   document.getElementById("stderr").textContent = "";
   document.getElementById("metrics").textContent = "";
 
-  const body = { language: lang, code, stdins };
+  const body = { language: lang, code };
+  if (stdin) body.stdin = stdin;
   if (!isNaN(timeLimit)) body.timeLimit = timeLimit;
   if (!isNaN(memoryLimit)) body.memoryLimit = memoryLimit;
 
@@ -75,5 +93,5 @@ document.getElementById("run").addEventListener("click", async () => {
     return;
   }
 
-  displayResult(data);
+  displayResults(data);
 });

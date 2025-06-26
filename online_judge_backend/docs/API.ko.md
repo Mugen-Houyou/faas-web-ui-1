@@ -1,9 +1,61 @@
-# API 사용법
+# Online Judge Backend REST API 명세서
 
-`/execute` 엔드포인트는 코드와 STDIN 목록을 받아 컴파일 후 순차적으로 실행합니다.
+이 문서는 온라인 저지 백엔드에서 제공하는 HTTP API를 설명합니다.
 
-- `language`: 실행할 언어
-- `code`: 소스 코드
-- `stdins`: 실행마다 전달할 STDIN 문자열들의 배열. 빈 줄로 구분하여 입력하면 됩니다.
+## POST `/execute`
 
-각 STDIN 세트는 여러 줄을 포함할 수 있으며, 결과는 마지막 실행 결과를 반환합니다.
+주어진 코드를 여러 입력으로 실행하여 결과 배열을 반환합니다.
+
+### 요청
+- **Method**: `POST`
+- **URL**: `/execute`
+- **Body** (`application/json`)
+
+```json
+{
+  "language": "python",
+  "code": "print(input())",
+  "stdins": ["a", "b"],
+  "timeLimit": 30000,
+  "memoryLimit": 256,
+  "token": null
+}
+```
+- `language`: `c`, `cpp`, `java`, `python` 중 하나
+- `code`: 실행할 소스 코드 문자열
+- `stdins`: 표준 입력 문자열 배열 (기본값 `[]`)
+- `timeLimit`: 실행 시간 제한(ms)
+- `memoryLimit`: 메모리 제한(MB)
+- `token`: 인증 토큰(선택)
+
+### 응답
+성공 시 `200 OK`와 함께 다음 형식의 JSON 배열을 반환합니다.
+
+```json
+[
+  {
+    "requestId": "UUID",
+    "stdout": "output",
+    "stderr": "",
+    "exitCode": 0,
+    "duration": 0.12,
+    "memoryUsed": 12,
+    "timedOut": false
+  }
+]
+```
+- `duration`: 실행 시간(초)
+- `memoryUsed`: 사용한 메모리(MB)
+- 지원하지 않는 언어일 경우 `501 Not Implemented`
+- 잘못된 요청 등 기타 오류 시 `400 Bad Request`
+
+### 예시
+```bash
+curl -X POST http://localhost:8000/execute \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "language": "python",
+    "code": "print(input())",
+    "stdins": ["a", "b", "c"]
+  }'
+```
