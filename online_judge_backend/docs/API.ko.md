@@ -23,7 +23,7 @@
 ```
 - `language`: `c`, `cpp`, `java`, `python` 중 하나
 - `code`: 실행할 소스 코드 문자열
-- `stdins`: 표준 입력 문자열 배열 (기본값 `[]`)
+- `stdins`: 표준 입력 문자열 배열 (기본값 `[]`). 각 요소는 한 번의 실행에서 사용할 전체 입력이며 여러 줄을 포함할 수 있습니다. 프론트엔드에서는 빈 줄을 기준으로 새 실행을 구분합니다.
 - `timeLimit`: 실행 시간 제한(ms)
 - `memoryLimit`: 메모리 제한(MB)
 - `token`: 인증 토큰(선택)
@@ -56,6 +56,6 @@ curl -X POST http://localhost:8000/execute \
   -d '{
     "language": "python",
     "code": "print(input())",
-    "stdins": ["a", "b", "c"]
+    "stdins": ["first\nline", "second"]
   }'
 ```
