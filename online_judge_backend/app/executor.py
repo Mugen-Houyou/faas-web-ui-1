@@ -194,29 +194,4 @@ async def execute_code(
     return result
 
 
-async def execute_code_multiple(
-    lang: SupportedLanguage,
-    code: str,
-    stdins: list[str],
-    time_limit: int = 30000,
-    memory_limit: int = 256,
-    token: Optional[str] = None,
-) -> list[ExecutionResult]:
-    """Compile once and run the code for each stdin in ``stdins``."""
 
-    file_path = await compile_code(lang, code, token)
-    results: list[ExecutionResult] = []
-    try:
-        for data in stdins:
-            res = await run_code(lang, file_path, data, time_limit, memory_limit)
-            results.append(res)
-    finally:
-        try:
-            if lang is SupportedLanguage.java:
-                shutil.rmtree(file_path.parent, ignore_errors=True)
-            else:
-                os.remove(file_path)
-        except OSError:
-            pass
-
-    return results

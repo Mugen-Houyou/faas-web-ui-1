@@ -8,13 +8,8 @@ Run with ``uvicorn app.main:app``.
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
 from pydantic import BaseModel
-from .executor import (
-    execute_code_multiple,
-    SupportedLanguage,
-    ExecutionResult,
-)
+from .executor import execute_code, SupportedLanguage, ExecutionResult
 
 app = FastAPI()
 
@@ -34,23 +29,23 @@ app.add_middleware(
 class CodeRequest(BaseModel):
     language: SupportedLanguage
     code: str
-    stdins: List[str] = []
+    stdin: str = ""
     timeLimit: int = 30000
     memoryLimit: int = 256
     token: str | None = None
 
-@app.post("/execute", response_model=list[ExecutionResult])
+@app.post("/execute", response_model=ExecutionResult)
 async def run_code(req: CodeRequest):
     try:
-        results = await execute_code_multiple(
+        result = await execute_code(
             lang=req.language,
             code=req.code,
-            stdins=req.stdins,
+            stdin=req.stdin,
             time_limit=req.timeLimit,
             memory_limit=req.memoryLimit,
             token=req.token,
         )
-        return results
+        return result
     except NotImplementedError as e:
         raise HTTPException(status_code=501, detail=str(e))
     except Exception as e:
