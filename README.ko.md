@@ -1,6 +1,6 @@
 # Codeground 온라인 저지
 
-`POST /execute` API를 통해 코드를 실행할 수 있도록 구성되었습니다. 이 코드베이스는 데모용 프론트엔드 (`frontend`), FastAPI 백엔드 (`online_judge_backend\main.py`), 그리고 워커 프로세스 (`online_judge_backend\worker.py`)로 구성되어 있습니다. `backend` 폴더는 추후 삭제 예정이므로 무시해주세요.
+`POST /execute` API를 통해 코드를 실행할 수 있도록 구성되었습니다. 이 코드베이스는 데모용 프론트엔드 (`frontend`), FastAPI 백엔드 (`online_judge_backend\app\main.py`), 그리고 워커 프로세스 (`online_judge_backend\app\worker.py`)로 구성되어 있습니다. `backend` 폴더는 추후 삭제 예정이므로 무시해주세요.
 
 - Python, Java, C, C++ 코드를 실행
 - 지원하지 않는 언어는 **501 Not Implemented** 응답
