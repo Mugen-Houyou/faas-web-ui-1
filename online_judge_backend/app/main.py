@@ -10,11 +10,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from pydantic import BaseModel
-from .executor import (
-    execute_code_multiple,
-    SupportedLanguage,
-    ExecutionResult,
-)
+from .executor import SupportedLanguage, ExecutionResult
+from .rabbitmq_rpc import RpcClient, get_rpc_client
 
 app = FastAPI()
 
@@ -39,17 +36,22 @@ class CodeRequest(BaseModel):
     memoryLimit: int = 256
     token: str | None = None
 
+
+@app.on_event("startup")
+async def startup() -> None:
+    app.state.rpc: RpcClient = await get_rpc_client()
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    await app.state.rpc.close()
+
 @app.post("/execute", response_model=list[ExecutionResult])
 async def run_code(req: CodeRequest):
     try:
-        results = await execute_code_multiple(
-            lang=req.language,
-            code=req.code,
-            stdins=req.stdins,
-            time_limit=req.timeLimit,
-            memory_limit=req.memoryLimit,
-            token=req.token,
-        )
+        payload = req.dict()
+        raw_results = await app.state.rpc.call(payload)
+        results = [ExecutionResult(**r) for r in raw_results]
         return results
     except NotImplementedError as e:
         raise HTTPException(status_code=501, detail=str(e))

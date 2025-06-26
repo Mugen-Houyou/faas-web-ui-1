@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 import psutil
 
 # Load ../.env relative to this file so it works regardless of cwd
-env_path = Path(__file__).resolve().parents[2] / ".env"
-load_dotenv(dotenv_path=env_path)
+env_path = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(dotenv_path=env_path, override=True)
 
 from pydantic import BaseModel
 
@@ -143,6 +143,10 @@ async def run_code(
         return peak
 
     mem_task = asyncio.create_task(_track_memory_usage(process.pid))
+
+    # ``process.communicate`` sends the entire input and closes stdin. If the
+    # executed program requests more data than provided, it receives EOF instead
+    # of blocking indefinitely.
 
     timed_out = False
     try:
