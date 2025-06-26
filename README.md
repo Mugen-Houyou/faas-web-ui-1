@@ -1,20 +1,24 @@
 # FaaS Web UI
 
--This project provides a small interface for running code through a simple `/execute` API.
+[한국어 README](README.ko.md)
 
-- Execute Python, C, C++, and Java code
-- Unsupported languages return **501 Not Implemented**
-- The backend compiles the source and then runs the result locally
-- Static frontend located in the `frontend` directory
+An interface that allows you to execute code via a simple `/execute` API.
+
+- Executes Python, Java, C, and C++ code
+- Returns **501 Not Implemented** for unsupported languages
+- The backend (in the `online_judge_backend` folder) provides the `/execute` API using FastAPI and
+  delivers jobs to workers via RabbitMQ.
+- Workers can be started with the command `python -m online_judge_backend.app.worker`.
+- The frontend (in the `frontend` folder) is a demo web UI that utilizes the backend.
 
 ## Requirements
-- Web browser for the frontend
-- Python 3.11 for the optional backend
+- A web browser is all you need to use the frontend.
+- The backend requires Python 3.11 and additional tools such as C/C++ compilers and a JDK as described below.
 
-## Backend Setup (optional)
+## Backend Setup
 1. Create and activate a virtual environment:
    ```bash
-   cd backend
+   cd online_judge_backend
    python3 -m venv venv
    source venv/bin/activate
    ```
@@ -23,42 +27,44 @@
    pip install --upgrade pip
    pip install -r requirements.txt
    ```
-3. Install C/C++ compilers (Ubuntu 22.04 LTS):
+3. Install C/C++ compilers (for Ubuntu 22.04 LTS):
    ```bash
    sudo apt update
    sudo apt install build-essential
    ```
-4. Install OpenJDK (Ubuntu 22.04 LTS):
+4. Install OpenJDK (for Ubuntu 22.04 LTS):
    ```bash
    sudo apt install openjdk-17-jdk
    ```
-5. Launch the server:
+5. Run the RabbitMQ server. The default address is `amqp://guest:guest@localhost/`, which can be changed using the `RABBITMQ_URL` environment variable. (e.g., use [Docker](https://hub.docker.com/_/rabbitmq) locally)
+6. Start the worker process:
    ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   python -m online_judge_backend.app.worker
+   ```
+7. Start the FastAPI backend:
+   ```bash
+   uvicorn online_judge_backend.app.main:app --host 0.0.0.0 --port 8000
    ```
 
-## Frontend Setup
-Open `frontend/index.html` directly in a browser or serve the directory with a simple HTTP server:
+## Running the Frontend
+You can either directly open `frontend/index.html` in a browser or serve it using a simple HTTP server.
 
 ```bash
 cd frontend
 python -m http.server 8080
 ```
-Then navigate to `http://localhost:8080`.
+Then visit `http://localhost:8080`.
 
-The frontend includes a field to set the API URL. It defaults to
-`http://localhost:8000`, which targets the provided FastAPI backend.
-If you point it directly to a different server, ensure that CORS is enabled
-or your browser may block the requests.
+The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly.
 
 ## Usage
-Enter your JWT token (if required), choose a language, provide code and optional STDIN blocks separated by blank lines, and click **Run**. Each block may contain multiple lines. The request is sent to the backend which compiles the code and runs it once per block. The result shows the program output(s), exit code, and execution time.
+After entering a JWT token, select a language and write your code. If there is STDIN input, enter it as blocks separated by blank lines. Each block can contain multiple lines, and a new execution is triggered when a blank line is encountered. Press the **Execute!** button to receive an array of results, one per input block.
 
 ## REST API Specification
-See [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) for details on the HTTP API.
+Refer to the [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) file for detailed REST API specifications.
 
-## Korean Version
-See [README.ko.md](README.ko.md).
+## Asynchronous Processing with RabbitMQ Server
+This codebase is designed with **asynchronous processing based on a RabbitMQ server** in mind. See the [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/API.ko.md) file for more information.
 
 ## License
-No license file is provided.
+This repository does not include a separate license file.
