@@ -32,8 +32,8 @@ class ExecutionResult(BaseModel):
     stdout: str
     stderr: str
     exitCode: int
-    duration: float
-    memoryUsed: int
+    duration: float  # milliseconds
+    memoryUsed: int  # kilobytes
     timedOut: bool
 
 
@@ -144,6 +144,10 @@ async def run_code(
 
     mem_task = asyncio.create_task(_track_memory_usage(process.pid))
 
+    # ``process.communicate`` sends the entire input and closes stdin. If the
+    # executed program requests more data than provided, it receives EOF instead
+    # of blocking indefinitely.
+
     timed_out = False
     try:
         stdout, stderr = await asyncio.wait_for(
@@ -154,7 +158,7 @@ async def run_code(
         stdout, stderr = await process.communicate()
         timed_out = True
 
-    duration = time.perf_counter() - start
+    duration = (time.perf_counter() - start) * 1000  # ms
     exit_code = process.returncode if process.returncode is not None else -1
     peak_rss = await mem_task
 
@@ -164,7 +168,7 @@ async def run_code(
         stderr=stderr.decode(),
         exitCode=exit_code,
         duration=duration,
-        memoryUsed=int(peak_rss / (1024 * 1024)),
+        memoryUsed=int(peak_rss / 1024),
         timedOut=timed_out,
     )
 

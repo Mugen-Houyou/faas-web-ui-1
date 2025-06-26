@@ -4,7 +4,10 @@
 
 ## POST `/execute`
 
-주어진 코드를 여러 입력으로 실행하여 결과 배열을 반환합니다.
+주어진 코드를 여러 입력으로 실행하여 결과 배열을 반환합니다. 백엔드는
+RabbitMQ를 통해 작업을 큐에 넣고 별도의 워커 프로세스가 이를 처리한 뒤
+결과를 응답으로 전달합니다. 워커는 `python -m online_judge_backend.app.worker`
+명령으로 실행할 수 있습니다.
 
 ### 요청
 - **Method**: `POST`
@@ -27,6 +30,7 @@
 - `timeLimit`: 실행 시간 제한(ms)
 - `memoryLimit`: 메모리 제한(MB)
 - `token`: 인증 토큰(선택)
+- 입력이 부족한 경우 백엔드는 STDIN 스트림을 닫아 프로그램이 즉시 EOF를 받도록 합니다. 이때 프로그램이 종료되지 않으면 `timeLimit`이 적용되어 강제 종료될 수 있습니다.
 
 ### 응답
 성공 시 `200 OK`와 함께 다음 형식의 JSON 배열을 반환합니다.
@@ -38,14 +42,14 @@
     "stdout": "output",
     "stderr": "",
     "exitCode": 0,
-    "duration": 0.12,
-    "memoryUsed": 12,
+    "duration": 120,
+    "memoryUsed": 12288,
     "timedOut": false
   }
 ]
 ```
-- `duration`: 실행 시간(초)
-- `memoryUsed`: 사용한 메모리(MB)
+- `duration`: 실행 시간(ms)
+- `memoryUsed`: 사용한 메모리(KB)
 - 지원하지 않는 언어일 경우 `501 Not Implemented`
 - 잘못된 요청 등 기타 오류 시 `400 Bad Request`
 

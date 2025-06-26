@@ -17,7 +17,7 @@ function displayResults(data) {
     const met = data
       .map(
         (r, i) =>
-          `#${i + 1} exitCode: ${r.exitCode}, duration: ${r.duration.toFixed(3)}s, memory: ${r.memoryUsed}MB, timedOut: ${r.timedOut}`
+          `#${i + 1} exitCode: ${r.exitCode}, duration: ${r.duration.toFixed(0)}ms, memory: ${r.memoryUsed}KB, timedOut: ${r.timedOut}`
       )
       .join("\n");
     document.getElementById("stdout").textContent = out;
@@ -27,9 +27,10 @@ function displayResults(data) {
     document.getElementById("stdout").textContent = data.stdout || "";
     document.getElementById("stderr").textContent = data.stderr || "";
     document.getElementById("metrics").textContent =
-      `exitCode: ${data.exitCode}, duration: ${data.duration.toFixed(3)}s, ` +
-      `memory: ${data.memoryUsed}MB, timedOut: ${data.timedOut}`;
+      `exitCode: ${data.exitCode}, duration: ${data.duration.toFixed(0)}ms, ` +
+      `memory: ${data.memoryUsed}KB, timedOut: ${data.timedOut}`;
   }
+  document.getElementById("spinner").classList.add("hidden");
 }
 
 async function pollResult(token, requestId) {
@@ -46,6 +47,7 @@ async function pollResult(token, requestId) {
       break;
     } else {
       document.getElementById("stderr").textContent = data.error || "Error";
+      document.getElementById("spinner").classList.add("hidden");
       break;
     }
   }
@@ -66,6 +68,7 @@ document.getElementById("run").addEventListener("click", async () => {
   document.getElementById("stdout").textContent = "실행 중...";
   document.getElementById("stderr").textContent = "";
   document.getElementById("metrics").textContent = "";
+  document.getElementById("spinner").classList.remove("hidden");
 
   const body = { language: lang, code };
   if (stdins.length) body.stdins = stdins;
@@ -91,6 +94,7 @@ document.getElementById("run").addEventListener("click", async () => {
     document.getElementById("stderr").textContent =
       data.error || data.detail || "Error";
     document.getElementById("stdout").textContent = "";
+    document.getElementById("spinner").classList.add("hidden");
     return;
   }
 

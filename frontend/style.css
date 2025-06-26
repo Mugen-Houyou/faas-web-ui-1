@@ -35,6 +35,15 @@ select {
   padding: 6px 16px;
 }
 
+#spinner {
+  margin-top: 10px;
+  font-weight: bold;
+}
+
+.hidden {
+  display: none;
+}
+
 pre {
   background: #f4f4f4;
   padding: 10px;
