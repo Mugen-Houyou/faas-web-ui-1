@@ -52,7 +52,7 @@ If you point it directly to a different server, ensure that CORS is enabled
 or your browser may block the requests.
 
 ## Usage
-Enter your JWT token (if required), choose a language, provide code and optional STDIN, and click **Run**. The request is sent to the backend which compiles the code and runs it locally. The result shows the program output, exit code, and execution time.
+Enter your JWT token (if required), choose a language, provide code and optional STDIN, and click **Run**. Multiple executions can be provided by separating each STDIN set with a blank line. Each set may contain multiple lines. The request is sent to the backend which compiles the code and runs it locally. The result shows the program output, exit code, and execution time.
 
 ## Korean Version
 See [README.ko.md](README.ko.md).

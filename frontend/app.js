@@ -37,7 +37,10 @@ async function pollResult(token, requestId) {
 document.getElementById("run").addEventListener("click", async () => {
   const lang = document.getElementById("lang").value;
   const code = document.getElementById("code").value;
-  const stdin = document.getElementById("stdin").value;
+  const stdinsRaw = document.getElementById("stdin").value;
+  const stdins = stdinsRaw.trim()
+    ? stdinsRaw.trim().split(/\n\s*\n/)
+    : [];
   const token = document.getElementById("token").value.trim();
   const timeLimit = parseInt(document.getElementById("timeLimit").value);
   const memoryLimit = parseInt(document.getElementById("memoryLimit").value);
@@ -46,8 +49,7 @@ document.getElementById("run").addEventListener("click", async () => {
   document.getElementById("stderr").textContent = "";
   document.getElementById("metrics").textContent = "";
 
-  const body = { language: lang, code };
-  if (stdin) body.stdin = stdin;
+  const body = { language: lang, code, stdins };
   if (!isNaN(timeLimit)) body.timeLimit = timeLimit;
   if (!isNaN(memoryLimit)) body.memoryLimit = memoryLimit;
 
