@@ -6,12 +6,21 @@ the resulting program locally. Unsupported languages raise
 Run with ``uvicorn app.main:app``.
 """
 
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from pydantic import BaseModel
+from dotenv import load_dotenv
+from pathlib import Path
+
 from .executor import SupportedLanguage, ExecutionResult
 from .rabbitmq_rpc import RpcClient, get_rpc_client
+
+
+# Load ../.env relative to this file so it works regardless of cwd
+env_path = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(dotenv_path=env_path, override=False)
 
 app = FastAPI()
 
@@ -39,6 +48,9 @@ class CodeRequest(BaseModel):
 
 @app.on_event("startup")
 async def startup() -> None:
+    print("Starting up RPC client... ", end="")
+    url = os.getenv("RABBITMQ_URL", "asdf")
+    print(f"Connecting to RabbitMQ at {url}")
     app.state.rpc: RpcClient = await get_rpc_client()
 
 
