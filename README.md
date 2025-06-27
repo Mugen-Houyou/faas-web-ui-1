@@ -1,4 +1,4 @@
-# FaaS Web UI
+# Codeground Online Judge
 
 [한국어 README](README.ko.md)
 

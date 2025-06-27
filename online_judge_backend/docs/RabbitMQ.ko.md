@@ -3,7 +3,7 @@
 이 문서는 `online_judge_backend` 폴더에 있는 비동기 백엔드의 기본 동작과 RabbitMQ 환경 설정 방법을 설명합니다. 간단한 `/execute` API로 코드를 실행하려면 백엔드 서버와 별도의 워커 프로세스가 필요하며, 이들은 RabbitMQ 큐를 통해 통신합니다. 이 큐잉을 위한 RabbitMQ 서버 역시 준비되어 있어야 합니다.
 
 ## 구성요소 개요
-- **FastAPI 서버**: 요청을 받아 RabbitMQ 큐에 작업을 넣습니다.
+- **FastAPI 서버**: 요청을 받아 RabbitMQ 큐에 작업을 넣은 뒤, 결과를 받았을 때 응답합니다.
 - **워커**: 큐에서 작업을 가져와 실제로 코드를 실행하고 결과를 돌려줍니다.
 - **RabbitMQ 서버**: 이 코드베이스와는 별개로 준비되어 있어야 합니다. FastAPI 서버와 워커(들) 사이에서 메시지를 중계합니다.
 
@@ -62,16 +62,16 @@ docker stop rabbitmq && docker rm rabbitmq
 ```
 
 # 예시 아키텍처
-![alt text](1_QCF7d8QFIAqlJggPxCAL6w.png)
+![alt text](image.png)
 
 이 코드베이스는 FastAPI 백엔드와 워커 프로세스(들이)가 분리되어, 이들을 RabbitMQ 서버를 통해 중계할 것으로 상정하여 제작되었습니다. 즉, 각 구성요소가 RabbitMQ 서버에 연결되기만 한다면, 서로 다른 노드들에 배포 및 분산 처리가 가능해짐을 의미합니다.
 
-예를 들어, 
+예를 들어, EC2 인스턴스 5대가 있다면, 
 - RabbitMQ 서버용 EC2 인스턴스 1대
 
-- FastAPI 백엔드 EC2 인스턴스 1대 (`online_judge_backend.app.main:app --host 0.0.0.0 --port 8000`)
+- FastAPI 백엔드용 EC2 인스턴스 1대 (`online_judge_backend.app.main:app --host 0.0.0.0 --port 8000`)
 
-- 그리고 EC2 인스턴스 3대가 각각 워커 프로세스를 실행 (`python -m online_judge_backend.app.worker`)
+- 그리고 나머지 3대가 각각 워커 프로세스를 실행 (`python -m online_judge_backend.app.worker`)
 
 ... 같은 식으로 구성할 수 있습니다. 이렇게 되면 FastAPI 백엔드는 작업을 RabbitMQ로 푸시하고, 다른 EC2 인스턴스 워커(들이)가 이를 소비/실행하며, 완료되면 FastAPI 백엔드가 결과를 반환합니다.
 
