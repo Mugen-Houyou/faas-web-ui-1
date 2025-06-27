@@ -36,7 +36,10 @@ An interface that allows you to execute code via a simple `/execute` API.
    ```bash
    sudo apt install openjdk-17-jdk
    ```
-5. Run the RabbitMQ server. The default address is `amqp://guest:guest@localhost/`, which can be changed using the `RABBITMQ_URL` environment variable. (e.g., use [Docker](https://hub.docker.com/_/rabbitmq) locally)
+5. Run the RabbitMQ server. The default address is `amqp://guest:guest@localhost/` and can be changed using the `RABBITMQ_URL` on the `.env` file.
+
+- For detailed installation instructions refer to the [official documentation](https://www.rabbitmq.com/docs/install-debian). Or you might want to consider using the [official Docker image](https://hub.docker.com/_/rabbitmq).
+
 6. Start the worker process:
    ```bash
    python -m online_judge_backend.app.worker
