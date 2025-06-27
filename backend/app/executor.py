@@ -178,8 +178,21 @@ async def execute_code(
     token: Optional[str] = None,
 ) -> ExecutionResult:
     """High-level helper that compiles then executes code."""
+    try:
+        file_path = await compile_code(lang, code, token)
+    except NotImplementedError:
+        raise
+    except Exception as e:
+        return ExecutionResult(
+            requestId=str(uuid.uuid4()),
+            stdout="",
+            stderr=str(e),
+            exitCode=-1,
+            duration=0.0,
+            memoryUsed=0,
+            timedOut=False,
+        )
 
-    file_path = await compile_code(lang, code, token)
     try:
         result = await run_code(lang, file_path, stdin, time_limit, memory_limit)
     finally:

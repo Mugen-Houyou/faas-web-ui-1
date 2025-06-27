@@ -22,16 +22,20 @@ async def main() -> None:
     async with queue.iterator() as queue_iter:
         async for message in queue_iter:
             async with message.process():
-                data = json.loads(message.body)
-                results = await execute_code_multiple(
-                    lang=SupportedLanguage(data["language"]),
-                    code=data["code"],
-                    stdins=data.get("stdins", []),
-                    time_limit=data.get("timeLimit", 30000),
-                    memory_limit=data.get("memoryLimit", 256),
-                    token=data.get("token"),
-                )
-                response = [r.dict() for r in results]
+                try:
+                    data = json.loads(message.body)
+                    results = await execute_code_multiple(
+                        lang=SupportedLanguage(data["language"]),
+                        code=data["code"],
+                        stdins=data.get("stdins", []),
+                        time_limit=data.get("timeLimit", 30000),
+                        memory_limit=data.get("memoryLimit", 256),
+                        token=data.get("token"),
+                    )
+                    response = [r.model_dump() for r in results]
+                except Exception as e:
+                    response = {"error": str(e)}
+
                 await channel.default_exchange.publish(
                     aio_pika.Message(
                         body=json.dumps(response).encode(),
