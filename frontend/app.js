@@ -55,9 +55,11 @@ document.getElementById("run").addEventListener("click", async () => {
   const lang = document.getElementById("lang").value;
   const code = document.getElementById("code").value;
   const stdinsRaw = document.getElementById("stdins").value;
-  let stdins = [];
+  let stdins;
   if (stdinsRaw.trim()) {
     stdins = stdinsRaw.trim().split(/\n\s*\n/);
+  } else {
+    stdins = [""];
   }
   const token = document.getElementById("token").value.trim();
   const timeLimit = parseInt(document.getElementById("timeLimit").value);
@@ -67,8 +69,7 @@ document.getElementById("run").addEventListener("click", async () => {
   document.getElementById("stderr").textContent = "";
   document.getElementById("metrics").textContent = "";
 
-  const body = { language: lang, code };
-  if (stdins.length) body.stdins = stdins;
+  const body = { language: lang, code, stdins };
   if (!isNaN(timeLimit)) body.timeLimit = timeLimit;
   if (!isNaN(memoryLimit)) body.memoryLimit = memoryLimit;
 
