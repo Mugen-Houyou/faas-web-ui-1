@@ -34,16 +34,20 @@
    ```bash
    sudo apt install openjdk-17-jdk
    ```
-5. RabbitMQ 서버를 실행합니다. 기본 주소는 `amqp://guest:guest@localhost/`이며
-   `RABBITMQ_URL` 환경 변수로 변경할 수 있습니다. (예: 로컬에서
-   [docker](https://hub.docker.com/_/rabbitmq) 사용)
-6. 워커 프로세스를 실행합니다.
+5. RabbitMQ 서버를 실행합니다. 기본 주소는 `amqp://guest:guest@localhost/`입니다.
+- 자세한 설치 방법은 [공식 문서](https://www.rabbitmq.com/docs/install-debian)를 참조하세요. 또는 [Docker 이미지](https://hub.docker.com/_/rabbitmq)를 사용할 수도 있습니다.
+- 인증에 쓰이는 `guest` / `guest`은 보안을 위해 바꾸는 것이 권장됩니다.
+
+6. `.env.example`의 양식과 동일하게 `.env` 파일을 생성하여 환경 변수를 구성합니다.
+- `.env.example`을 복사 후 `.env`라는 이름으로 붙여넣기하면 됩니다.
+
+7. `online_judge_backend/app`로 이동하여 워커 프로세스를 실행합니다.
    ```bash
-   python -m online_judge_backend.app.worker
+   python -m app.worker
    ```
-7. FastAPI 백엔드를 실행합니다.
+8. `online_judge_backend/app`로 이동하여 FastAPI 백엔드를 실행합니다.
    ```bash
-   uvicorn online_judge_backend.app.main:app --host 0.0.0.0 --port 8000
+   uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
 
 ## 프론트엔드 실행
@@ -63,8 +67,8 @@ JWT 토큰을 입력한 뒤 언어와 코드를 작성하고 STDIN이 있다면 
 ## REST API 명세
 REST API의 세부 규격은 [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) 파일을 참고하세요.
 
-## RabbitMQ 서버 기반 비동기 처리
-이 코드베이스는 **RabbitMQ 서버 기반 비동기 처리**를 상정하여 구성되었습니다. [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/API.ko.md) 파일을 참고하세요.
+## RabbitMQ 관련
+이 코드베이스는 **RabbitMQ 서버 기반 비동기 처리**를 상정하여 구성되었습니다. [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/RabbitMQ.ko.md) 파일을 참고하세요.
 
 ## 라이선스
 이 저장소에는 별도의 라이선스 파일이 포함되어 있지 않습니다.
