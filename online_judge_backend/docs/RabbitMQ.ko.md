@@ -1,41 +1,11 @@
-# RabbitMQ 가이드
+# RabbitMQ 흐름 상세
 
-이 문서는 `online_judge_backend`의 온라인 저지의 비동기 동작 흐름 및 RabbitMQ 환경 설정 방법을 설명합니다. 간단한 `POST /execute` API로 코드를 실행하려면 백엔드 서버와 별도의 워커 프로세스가 필요하며, 이들은 RabbitMQ 큐를 통해 통신합니다. 이 큐잉을 위한 RabbitMQ 서버 역시 준비되어 있어야 합니다.
+이 문서는 `online_judge_backend`의 온라인 저지의 비동기 동작 흐름을 설명합니다. 간단한 `POST /execute` API로 코드를 실행하려면 백엔드 서버와 별도의 워커 프로세스(들이)가 필요하며, 이들은 RabbitMQ 큐를 통해 통신합니다. 이 큐잉을 위한 RabbitMQ 서버 역시 준비되어 있어야 합니다.
 
 ## 구성요소 개요
 - **FastAPI 서버**: 요청을 받아 RabbitMQ 큐에 작업을 넣은 뒤, 결과를 받았을 때 응답합니다.
 - **워커 프로세스(들)**: 큐에서 작업을 가져와 실제로 코드를 실행하고 결과를 돌려줍니다.
 - **RabbitMQ 서버**: 이 코드베이스와는 별개로 준비되어 있어야 합니다. FastAPI 서버와 워커(들) 사이에서 메시지를 중계합니다.
-
-## RabbitMQ 서버 준비
-RabbitMQ 서버를 직접 설치할 수도 있지만, 다음과 같이 Docker 이미지를 이용하면 빠르게 실행할 수 있습니다.
-
-```bash
-docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
-```
-
-- `.env`에 명시하지 않았을 경우 기본 접속 URL은 `amqp://guest:guest@localhost/` 입니다.
-- 관리 UI는 `http://localhost:15672` 에서 확인할 수 있으며 기본 계정은 guest/guest 입니다.
-
-필요하다면 `.env.example`의 양식에 맞추어 `RABBITMQ_URL` 환경 변수를 명시할 수 있습니다.
-
-## 워커 실행
-백엔드 루트(`online_judge_backend` 폴더)에서 다음 명령으로 워커 프로세스를 실행합니다.
-
-```bash
-python -m app.worker
-```
-
-워커는 RabbitMQ 큐에서 작업을 읽어 들여 **실제 코드 실행**을 담당합니다. 이 프로세스는 백엔드 API 서버와 별개로 계속 실행되고 있어야 합니다.
-
-## FastAPI 서버 실행
-다른 터미널에서 가상 환경을 활성화한 뒤 아래 명령으로 FastAPI 서버를 실행합니다.
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-서버가 실행되면 `/execute` 엔드포인트를 통해 코드를 실행할 수 있습니다. 워커가 실행 중이어야 결과를 받을 수 있습니다.
 
 ## `POST /execute` 요청 처리 흐름
 **1. FastAPI 백엔드 초기화 및 RPC 클라이언트 연결**
@@ -64,14 +34,17 @@ docker stop rabbitmq && docker rm rabbitmq
 # 예시 아키텍처
 ![alt text](image.png)
 
-이 코드베이스는 FastAPI 백엔드와 워커 프로세스(들이)가 분리되어, 이들을 RabbitMQ 서버를 통해 중계할 것으로 상정하여 제작되었습니다. 즉, 각 구성요소가 RabbitMQ 서버에 연결되기만 한다면, 서로 다른 노드들에 배포 및 분산 처리가 가능해짐을 의미합니다.
+각 구성요소가 RabbitMQ 서버에 연결되어 큐잉 기반으로 비동기 처리되므로, 워커 프로세스들을 여러 노드들에 배포하여 분산 처리가 가능합니다.
 
 예를 들어, EC2 인스턴스 5대가 있다면, 
 - RabbitMQ 서버용 EC2 인스턴스 1대
 
 - FastAPI 백엔드용 EC2 인스턴스 1대 (`online_judge_backend.app.main:app --host 0.0.0.0 --port 8000`)
 
-- 그리고 나머지 3대가 각각 워커 프로세스를 실행 (`python -m online_judge_backend.app.worker`)
+- 그리고 나머지 3대가 각각 워커 프로세스를 실행 (`python -m app.worker`)
 
 ... 같은 식으로 구성할 수 있습니다. 이렇게 되면 FastAPI 백엔드는 작업을 RabbitMQ로 푸시하고, 다른 EC2 인스턴스 워커(들이)가 이를 소비/실행하며, 완료되면 FastAPI 백엔드가 결과를 반환합니다.
 
+# 스케줄링은 누가 하나?
+
+기본적으로 이 코드베이스의 워커는 RabbitMQ 큐를 경쟁 소비자(competing consumers) 방식으로 소비합니다. 그리고 여러 워커가 같은 큐(`execute`)를 소비하더라도, **RabbitMQ 서버는 1개의 메시지를 1개의 워커에게만 전달합니다.** 그러므로, 워커는 `message.process()` 컨텍스트에서 작업을 처리하고 자동으로 `ack`(확인)하기에 동일한 메시지가 여러 워커 프로세스들에 의해 중복 실행되거나 특정 워커 프로세스만 주구장창 동작시키는 일은 발생하지 않습니다.
