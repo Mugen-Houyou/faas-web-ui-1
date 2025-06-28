@@ -70,31 +70,10 @@ REST API의 세부 규격은 [online_judge_backend/docs/API.ko.md](online_judge_
 ## RabbitMQ 관련
 이 코드베이스는 **RabbitMQ 서버 기반 비동기 처리**를 상정하여 구성되었습니다. [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/RabbitMQ.ko.md) 파일을 참고하세요.
 
-## Docker 이미지 빌드 및 ECR 푸시
-백엔드용 `Dockerfile.online-judge.backend`와 워커용 `Dockerfile.online-judge.worker`가 제공됩니다.
-
-### 백엔드 이미지 빌드
-
-```bash
-docker build -f Dockerfile.online-judge.backend -t <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-backend:latest .
-```
-
-### 워커 이미지 빌드
-
-```bash
-docker build -f Dockerfile.online-judge.worker -t <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-worker:latest .
-```
-
-### ECR에 푸시
-
-```bash
-aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com
-docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-backend:latest
-docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-worker:latest
-```
-
-## AWS 환경에서 환경 변수 설정
-`CORS_ALLOW_ORIGINS`를 포함한 `.env.example`에 정의된 값들은 ECS 작업 정의의 **Environment variables** 항목에서 지정할 수 있습니다. AWS 콘솔에서 수정하거나 `aws ecs register-task-definition` 명령을 통해 등록할 때 환경 변수를 함께 전달하면 됩니다.
+## AWS 배포
+AWS ECR/ECS Fargate에 이미지를 배포하고 환경 변수를 설정하는 방법은
+[online_judge_backend/docs/AWS_Deploy.ko.md](online_judge_backend/docs/AWS_Deploy.ko.md)
+문서를 참고하세요.
 
 ## 라이선스
 이 저장소에는 별도의 라이선스 파일이 포함되어 있지 않습니다.
