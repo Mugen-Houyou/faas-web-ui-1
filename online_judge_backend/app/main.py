@@ -24,15 +24,22 @@ load_dotenv(dotenv_path=env_path, override=False)
 
 app = FastAPI()
 
-# CORS 설정 (필요에 따라 origins 수정)
-# allow requests from any origin (use env vars to restrict in production)
+# CORS 설정
+# 기본 오리진 목록을 환경 변수로 확장할 수 있다.
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "http://localhost:8000",
+]
+
+extra_origins = os.getenv("CORS_ALLOW_ORIGINS")
+if extra_origins:
+    origins.extend(o.strip() for o in extra_origins.split(",") if o.strip())
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-    "http://localhost",
-    "http://localhost:3000", # 배포 시 프론트엔드 주소 - maybe?
-    "http://localhost:8080", # 배포 시 프론트엔드 주소 - maybe?
-    "http://localhost:8000", ],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

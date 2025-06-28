@@ -58,7 +58,7 @@ python -m http.server 8080
 ```
 Then visit `http://localhost:8080`.
 
-The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly.
+The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 
 ## Usage
 After entering a JWT token, select a language and write your code. If there is STDIN input, enter it as blocks separated by blank lines. Each block can contain multiple lines, and a new execution is triggered when a blank line is encountered. Press the **Execute!** button to receive an array of results, one per input block.
@@ -68,6 +68,32 @@ Refer to the [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API
 
 ## Asynchronous Processing with RabbitMQ Server
 This codebase is designed with **asynchronous processing based on a RabbitMQ server** in mind. See the [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/API.ko.md) file for more information.
+
+## Building Docker Images for AWS ECR
+Two Dockerfiles are provided for running the backend and worker on ECS/Fargate.
+
+Build the backend image:
+
+```bash
+docker build -f Dockerfile.online-judge.backend -t <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-backend:latest .
+```
+
+Build the worker image:
+
+```bash
+docker build -f Dockerfile.online-judge.worker -t <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-worker:latest .
+```
+
+Push images to ECR (after logging in):
+
+```bash
+aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com
+docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-backend:latest
+docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-worker:latest
+```
+
+## Configuring Environment Variables on AWS
+You can define environment variables such as `CORS_ALLOW_ORIGINS`, `FAAS_BASE_URL`, `FAAS_TOKEN`, and `RABBITMQ_URL` in your ECS task definition. In the AWS console, open the task definition and add them under **Environment variables**. These can also be specified when registering the task definition using the AWS CLI.
 
 ## License
 This repository does not include a separate license file.

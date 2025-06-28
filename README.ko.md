@@ -59,7 +59,7 @@ python -m http.server 8080
 ```
 이후 `http://localhost:8080`에 접속합니다.
 
-프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은 `http://localhost:8000`으로 FastAPI 백엔드를 가리킵니다. 다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다.
+프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은 `http://localhost:8000`으로 FastAPI 백엔드를 가리킵니다. 다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다. 추가 오리진은 `.env` 파일의 `CORS_ALLOW_ORIGINS` 변수(콤마 구분)를 통해 지정할 수 있습니다.
 
 ## 사용법
 JWT 토큰을 입력한 뒤 언어와 코드를 작성하고 STDIN이 있다면 빈 줄로 구분된 블록 단위로 입력할 수 있습니다. 한 블록은 여러 줄을 포함할 수 있으며, 빈 줄이 나타날 때마다 다음 실행으로 인식됩니다. **실행!** 버튼을 누르면 각 블록에 대해 코드를 실행한 결과 배열을 돌려줍니다.
@@ -69,6 +69,32 @@ REST API의 세부 규격은 [online_judge_backend/docs/API.ko.md](online_judge_
 
 ## RabbitMQ 관련
 이 코드베이스는 **RabbitMQ 서버 기반 비동기 처리**를 상정하여 구성되었습니다. [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/RabbitMQ.ko.md) 파일을 참고하세요.
+
+## Docker 이미지 빌드 및 ECR 푸시
+백엔드용 `Dockerfile.online-judge.backend`와 워커용 `Dockerfile.online-judge.worker`가 제공됩니다.
+
+### 백엔드 이미지 빌드
+
+```bash
+docker build -f Dockerfile.online-judge.backend -t <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-backend:latest .
+```
+
+### 워커 이미지 빌드
+
+```bash
+docker build -f Dockerfile.online-judge.worker -t <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-worker:latest .
+```
+
+### ECR에 푸시
+
+```bash
+aws ecr get-login-password --region <REGION> | docker login --username AWS --password-stdin <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com
+docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-backend:latest
+docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-worker:latest
+```
+
+## AWS 환경에서 환경 변수 설정
+`CORS_ALLOW_ORIGINS`를 포함한 `.env.example`에 정의된 값들은 ECS 작업 정의의 **Environment variables** 항목에서 지정할 수 있습니다. AWS 콘솔에서 수정하거나 `aws ecs register-task-definition` 명령을 통해 등록할 때 환경 변수를 함께 전달하면 됩니다.
 
 ## 라이선스
 이 저장소에는 별도의 라이선스 파일이 포함되어 있지 않습니다.

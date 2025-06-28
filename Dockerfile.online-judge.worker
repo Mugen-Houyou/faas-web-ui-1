@@ -1,0 +1,7 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY online_judge_backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+COPY online_judge_backend ./online_judge_backend
+CMD ["python", "-m", "online_judge_backend.app.worker"]
