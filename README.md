@@ -58,8 +58,9 @@ python -m http.server 8080
 ```
 Then visit `http://localhost:8080`.
 
-The `frontend/index_v2.html` page demonstrates the new asynchronous API that
-streams progress over WebSockets.
+The original `frontend/index.html` still uses the synchronous `/execute`
+endpoint. The `frontend/index_v2.html` page demonstrates the new asynchronous
+API that streams progress over WebSockets.
 
 The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 

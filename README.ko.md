@@ -59,8 +59,9 @@ python -m http.server 8080
 ```
 이후 `http://localhost:8080`에 접속합니다.
 
-`frontend/index_v2.html` 페이지에서는 WebSocket으로 진행 상황을 받아오는
-비동기 API 동작을 확인할 수 있습니다.
+기존 `frontend/index.html`은 여전히 동기식 `/execute` 엔드포인트를 사용합
+니다. `frontend/index_v2.html` 페이지에서는 WebSocket으로 진행 상황을 받
+아오는 비동기 API 동작을 확인할 수 있습니다.
 
 프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은 `http://localhost:8000`으로 FastAPI 백엔드를 가리킵니다. 다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다. 추가 오리진은 `.env` 파일의 `CORS_ALLOW_ORIGINS` 변수(콤마 구분)를 통해 지정할 수 있습니다.
 
