@@ -44,3 +44,24 @@ pre {
 pre.error {
   color: red;
 }
+
+.progress-container {
+  width: 100%;
+  background: #eee;
+  height: 20px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: #4caf50;
+  transition: width 0.2s;
+}
+
+#judgeMessage {
+  font-weight: bold;
+  margin-top: 8px;
+}

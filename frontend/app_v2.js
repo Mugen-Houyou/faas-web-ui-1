@@ -1,3 +1,5 @@
+let totalRuns = 1;
+
 function getBaseUrl() {
   const url = document.getElementById("apiUrl").value.trim();
   return url || "http://localhost:8000";
@@ -28,6 +30,11 @@ function displayResults(data) {
   }
 }
 
+function updateProgress(completed) {
+  const percent = Math.min(100, (completed / totalRuns) * 100);
+  document.getElementById("progressBar").style.width = `${percent}%`;
+}
+
 /**
  * Connect to the WebSocket progress stream and update the UI.
  */
@@ -40,8 +47,16 @@ function watchProgress(requestId) {
     if (msg.type === "progress") {
       results[msg.index] = msg.result;
       displayResults(results.filter((r) => r));
+      updateProgress(results.filter((r) => r).length);
     } else if (msg.type === "final") {
       displayResults(msg.results);
+      updateProgress(totalRuns);
+      const allSuccess = msg.results.every(
+        (r) => r.exitCode === 0 && !r.timedOut && !r.stderr
+      );
+      const msgEl = document.getElementById("judgeMessage");
+      msgEl.textContent = allSuccess ? "맞았습니다!" : "틀렸습니다!";
+      msgEl.style.color = allSuccess ? "green" : "red";
       socket.close();
     }
   };
@@ -67,6 +82,11 @@ document.getElementById("run").addEventListener("click", async () => {
   document.getElementById("stdout").textContent = "실행 중...";
   document.getElementById("stderr").textContent = "";
   document.getElementById("metrics").textContent = "";
+  const msgEl = document.getElementById("judgeMessage");
+  msgEl.textContent = "";
+  msgEl.style.color = "";
+  totalRuns = stdins.length;
+  updateProgress(0);
 
   const body = { language: lang, code, stdins };
   if (!isNaN(timeLimit)) body.timeLimit = timeLimit;
