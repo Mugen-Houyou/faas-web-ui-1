@@ -76,10 +76,18 @@ jobs:
         container-name: online-judge-worker-2
         image: ${{ steps.build-worker-image.outputs.image }}
 
+    - name: Fill in the new image ID in the Amazon ECS task definition for backend
+      id: task-def-backend
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def-worker-2.outputs.task-definition }}
+        container-name: online-judge-backend
+        image: ${{ steps.build-backend-image.outputs.image }}
+
     - name: Deploy Amazon ECS task definition
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
-        task-definition: ${{ steps.task-def-worker-2.outputs.task-definition }}
+        task-definition: ${{ steps.task-def-backend.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
         wait-for-service-stability: true
