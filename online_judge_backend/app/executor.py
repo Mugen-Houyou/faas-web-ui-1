@@ -3,7 +3,7 @@ import os
 import time
 import uuid
 from enum import Enum
-from typing import Optional
+from typing import Optional, Callable, Awaitable
 
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -218,6 +218,7 @@ async def execute_code_multiple(
     time_limit: int = 30000,
     memory_limit: int = 256,
     token: Optional[str] = None,
+    progress_cb: Optional[Callable[[ExecutionResult, int], Awaitable[None]]] = None,
 ) -> list[ExecutionResult]:
     """Compile once and run the code for each stdin in ``stdins``."""
     try:
@@ -238,9 +239,11 @@ async def execute_code_multiple(
 
     results: list[ExecutionResult] = []
     try:
-        for data in stdins:
+        for idx, data in enumerate(stdins):
             res = await run_code(lang, file_path, data, time_limit, memory_limit)
             results.append(res)
+            if progress_cb:
+                await progress_cb(res, idx)
     finally:
         try:
             if lang is SupportedLanguage.java:

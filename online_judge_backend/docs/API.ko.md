@@ -60,3 +60,65 @@ curl -X POST http://localhost:8000/execute \
     "stdins": ["first\nline", "second"]
   }'
 ```
+
+## POST `/execute_v2`
+
+`/execute`와 동일한 요청 본문을 사용하지만 비동기로 동작합니다. 요청을 보내면 즉시
+`requestId`를 반환하며, 진행 상황과 최종 결과는 WebSocket을 통해 전달됩니다.
+
+### 요청
+- **Method**: `POST`
+- **URL**: `/execute_v2`
+- **Body**: `/execute`와 동일
+
+### 응답
+성공 시 다음 형식의 JSON을 반환합니다.
+
+```json
+{
+  "requestId": "UUID"
+}
+```
+
+이 ID로 `/ws/progress/{requestId}` WebSocket에 연결하면 각 실행 결과가 순차적으로 전
+송되며, 마지막에는 전체 결과 배열을 포함한 `final` 메시지가 전달됩니다.
+
+## WebSocket `/ws/progress/{request_id}`
+
+`/execute_v2` 요청 후 반환된 `requestId`를 사용해 연결합니다. 서버는 JSON 메시지를
+스트리밍하며 형식은 다음과 같습니다.
+
+### 진행 메시지 예시
+```json
+{
+  "type": "progress",
+  "index": 0,
+  "result": {
+    "stdout": "output",
+    "stderr": "",
+    "exitCode": 0,
+    "duration": 120,
+    "memoryUsed": 12288,
+    "timedOut": false
+  }
+}
+```
+
+### 최종 메시지 예시
+```json
+{
+  "type": "final",
+  "results": [
+    {
+      "stdout": "output",
+      "stderr": "",
+      "exitCode": 0,
+      "duration": 120,
+      "memoryUsed": 12288,
+      "timedOut": false
+    }
+  ]
+}
+```
+
+`type`이 `final`인 메시지를 받은 뒤에는 클라이언트가 WebSocket 연결을 종료하면 됩니다.

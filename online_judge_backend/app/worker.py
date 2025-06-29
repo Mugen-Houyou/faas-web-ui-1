@@ -24,6 +24,20 @@ async def main() -> None:
             async with message.process():
                 try:
                     data = json.loads(message.body)
+
+                    async def progress_cb(res, idx):
+                        await channel.default_exchange.publish(
+                            aio_pika.Message(
+                                body=json.dumps({
+                                    "type": "progress",
+                                    "index": idx,
+                                    "result": res.model_dump(),
+                                }).encode(),
+                                correlation_id=message.correlation_id,
+                            ),
+                            routing_key="progress",
+                        )
+
                     results = await execute_code_multiple(
                         lang=SupportedLanguage(data["language"]),
                         code=data["code"],
@@ -31,8 +45,16 @@ async def main() -> None:
                         time_limit=data.get("timeLimit", 30000),
                         memory_limit=data.get("memoryLimit", 256),
                         token=data.get("token"),
+                        progress_cb=progress_cb,
                     )
                     response = [r.model_dump() for r in results]
+                    await channel.default_exchange.publish(
+                        aio_pika.Message(
+                            body=json.dumps({"type": "final", "results": response}).encode(),
+                            correlation_id=message.correlation_id,
+                        ),
+                        routing_key="progress",
+                    )
                 except Exception as e:
                     response = {"error": str(e)}
 
