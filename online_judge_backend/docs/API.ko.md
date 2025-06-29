@@ -1,6 +1,9 @@
 # Online Judge Backend REST API 명세서
 
-이 문서는 온라인 저지 백엔드에서 제공하는 HTTP API를 설명합니다.
+이 문서는 온라인 저지 백엔드에서 제공하는 HTTP API를 설명합니다. 기본적인 동기식
+`/execute` 엔드포인트 외에도 RabbitMQ 기반의 비동기식 API(`/execute_v2` +
+WebSocket)를 제공합니다. `frontend/index_v2.html` 페이지가 이 비동기 방식을 사용한
+예시입니다.
 
 ## POST `/execute`
 
@@ -80,8 +83,13 @@ curl -X POST http://localhost:8000/execute \
 }
 ```
 
-이 ID로 `/ws/progress/{requestId}` WebSocket에 연결하면 각 실행 결과가 순차적으로 전
-송되며, 마지막에는 전체 결과 배열을 포함한 `final` 메시지가 전달됩니다.
+응답으로 받은 `requestId`는 이후 진행 상황을 구독하기 위한 식별자입니다. 기본 흐름은 다음과 같습니다.
+1. 위 API에 코드를 POST하여 `requestId`를 얻습니다.
+2. `ws://<서버주소>/ws/progress/{requestId}` WebSocket에 연결합니다.
+3. 실행이 끝날 때까지 서버가 보내는 `progress` / `final` 메시지를 수신합니다.
+4. `final` 메시지를 받은 후 WebSocket을 닫습니다.
+
+이 과정을 구현한 예시는 `frontend/index_v2.html`과 `frontend/app_v2.js`에서 확인할 수 있습니다.
 
 ## WebSocket `/ws/progress/{request_id}`
 
