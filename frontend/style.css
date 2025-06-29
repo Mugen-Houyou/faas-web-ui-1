@@ -52,6 +52,8 @@ pre.error {
   border-radius: 4px;
   overflow: hidden;
   margin-top: 10px;
+  position: relative;
+  border: 1px solid #ccc;
 }
 
 .progress-bar {
@@ -59,6 +61,15 @@ pre.error {
   width: 0%;
   background: #4caf50;
   transition: width 0.2s;
+}
+
+.progress-label {
+  position: absolute;
+  width: 100%;
+  top: 0;
+  text-align: center;
+  line-height: 20px;
+  font-size: 12px;
 }
 
 #judgeMessage {

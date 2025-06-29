@@ -33,6 +33,7 @@ function displayResults(data) {
 function updateProgress(completed) {
   const percent = Math.min(100, (completed / totalRuns) * 100);
   document.getElementById("progressBar").style.width = `${percent}%`;
+  document.getElementById("progressLabel").textContent = `${percent.toFixed(0)}%`;
 }
 
 /**
