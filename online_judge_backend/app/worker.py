@@ -3,6 +3,7 @@ import json
 import os
 
 from pathlib import Path
+import time
 from dotenv import load_dotenv
 import aio_pika
 
@@ -38,6 +39,7 @@ async def main() -> None:
                             routing_key="progress",
                         )
 
+                    time.sleep(1)
                     results = await execute_code_multiple(
                         lang=SupportedLanguage(data["language"]),
                         code=data["code"],
