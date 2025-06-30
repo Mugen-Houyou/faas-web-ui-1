@@ -1,6 +1,27 @@
+let totalRuns = 1;
+
 function getBaseUrl() {
   const url = document.getElementById("apiUrl").value.trim();
   return url || "http://localhost:8000";
+}
+
+function displayRunResults(data) {
+  const out = data
+    .map((r, i) => `#${i + 1}\n${r.stdout || ""}`)
+    .join("\n---\n");
+  const err = data
+    .map((r) => r.stderr)
+    .filter((s) => s)
+    .join("\n---\n");
+  const met = data
+    .map(
+      (r, i) =>
+        `#${i + 1} exitCode: ${r.exitCode}, duration: ${r.duration.toFixed(0)}ms, memory: ${r.memoryUsed}KB, timedOut: ${r.timedOut}`
+    )
+    .join("\n");
+  document.getElementById("stdout").textContent = out;
+  document.getElementById("stderr").textContent = err;
+  document.getElementById("metrics").textContent = met;
 }
 
 function displayGradedResults(data) {
@@ -19,6 +40,36 @@ function displayGradedResults(data) {
     ? "모든 테스트를 통과했습니다!"
     : "일부 테스트가 실패했습니다.";
   msgEl.style.color = data.allPassed ? "green" : "red";
+  totalRuns = data.results.length;
+  updateProgress(totalRuns);
+}
+
+function updateProgress(completed) {
+  const percent = Math.min(100, (completed / totalRuns) * 100);
+  document.getElementById("progressBar").style.width = `${percent}%`;
+  document.getElementById("progressLabel").textContent = `${percent.toFixed(0)}%`;
+}
+
+function watchProgress(requestId) {
+  const wsUrl = getBaseUrl().replace(/^http/, "ws") + `/ws/progress/${requestId}`;
+  const socket = new WebSocket(wsUrl);
+  const results = [];
+  socket.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    if (msg.type === "progress") {
+      results[msg.index] = msg.result;
+      displayRunResults(results.filter((r) => r));
+      updateProgress(results.filter((r) => r).length);
+    } else if (msg.type === "final") {
+      displayRunResults(msg.results);
+      totalRuns = msg.results.length;
+      updateProgress(totalRuns);
+      socket.close();
+    }
+  };
+  socket.onerror = () => {
+    document.getElementById("stderr").textContent = "WebSocket error";
+  };
 }
 
 document.getElementById("run").addEventListener("click", async () => {
@@ -30,6 +81,9 @@ document.getElementById("run").addEventListener("click", async () => {
   document.getElementById("stdout").textContent = "실행 중...";
   document.getElementById("stderr").textContent = "";
   document.getElementById("judgeMessage").textContent = "";
+  document.getElementById("metrics").textContent = "";
+  totalRuns = 1;
+  updateProgress(0);
 
   const body = { language: lang, code, problemId, token: token || null };
 
@@ -46,5 +100,6 @@ document.getElementById("run").addEventListener("click", async () => {
     return;
   }
 
+  watchProgress(data.requestId);
   displayGradedResults(data);
 });
