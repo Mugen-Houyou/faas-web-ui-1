@@ -1,13 +1,11 @@
 # Online Judge Backend REST API 명세서
 
 이 문서는 온라인 저지 백엔드에서 제공하는 HTTP API를 설명합니다. 기본적인 동기식
-`/execute` 엔드포인트 외에도 RabbitMQ 기반의 비동기식 API(`/execute_v2` +
-WebSocket)를 제공합니다. `frontend/index_v2.html` 페이지가 이 비동기 방식을 사용한
-예시입니다.
+`/execute` 엔드포인트 외에도 v2 및 v3은 RabbitMQ 기반의 비동기식 API(`/execute_v2` + WebSocket 또는 `/execute_v3` + WebSocket)를 제공합니다. `frontend/index_v2.html` 및 `frontend/index_v3.html`가 이 비동기 방식을 사용한 데모입니다.
 
 ## POST `/execute`
 
-주어진 코드를 여러 입력으로 실행하여 결과 배열을 반환합니다. 
+동기 방식. 주어진 코드를 여러 입력으로 실행하여 결과 배열을 반환합니다. 
 
 ### 요청
 - **Method**: `POST`
@@ -67,7 +65,7 @@ curl -X POST http://localhost:8000/execute \
 ## POST `/execute_v2`
 
 `/execute`와 동일한 요청 본문을 사용하지만 비동기로 동작합니다. 요청을 보내면 즉시
-`requestId`를 반환하며, 진행 상황과 최종 결과는 WebSocket을 통해 전달됩니다.
+`requestId`를 반환하며, 추후 진행 상황과 최종 결과는 WebSocket을 통해 전달됩니다.
 
 ### 요청
 - **Method**: `POST`
@@ -93,17 +91,19 @@ curl -X POST http://localhost:8000/execute \
 
 ## WebSocket `/ws/progress/{request_id}`
 
-`/execute_v2` 요청 후 반환된 `requestId`를 사용해 연결합니다. 서버는 JSON 메시지를
-스트리밍하며 형식은 다음과 같습니다.
+`/execute_v2` 및 `/execute_v3` 요청 후 반환된 `requestId`를 사용해 연결합니다. 서버는 JSON 메시지를 스트리밍합니다.
 
-### 진행 메시지 예시
+JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v3`을 보냈을 때가 살짝 다릅니다. 구체적으로는 아래와 같습니다.
+
+### 진행 메시지 예시 (`/execute_v2`)
 ```json
 {
   "type": "progress",
   "index": 0,
   "result": {
-    "stdout": "output",
-    "stderr": "",
+    "requestId":"c4b50694-c15c-4ce7-ab76-5e3754eebeb7",
+    "stdout": "output goes here\n",
+    "stderr": "error goes here\n",
     "exitCode": 0,
     "duration": 120,
     "memoryUsed": 12288,
@@ -112,20 +112,86 @@ curl -X POST http://localhost:8000/execute \
 }
 ```
 
-### 최종 메시지 예시
+### 진행 메시지 예시 (`/execute_v3`)
+만약 채점 도중 특정 테스트케이스가 정답과 다를 경우 바로 중단되며 최종 메시지를 출력할 수 있습니다.
 ```json
 {
-  "type": "final",
-  "results": [
-    {
-      "stdout": "output",
-      "stderr": "",
-      "exitCode": 0,
-      "duration": 120,
-      "memoryUsed": 12288,
-      "timedOut": false
-    }
-  ]
+  "type": "progress",
+  "index": 0,
+  "result": {
+    "requestId":"c4b50694-c15c-4ce7-ab76-5e3754eebeb7",
+    "stdout": "output goes here\n",
+    "stderr": "error goes here\n",
+    "exitCode": 0,
+    "duration": 120,
+    "memoryUsed": 12288,
+    "timedOut": false
+  },
+  "total": 8
+}
+```
+
+### 최종 메시지 예시 (`/execute_v2`)
+```json
+{
+	"type": "final",
+	"results": [
+		{
+			"requestId": "5f855593-4347-4142-8b73-01c98aa2c0c3",
+			"stdout": "asdofasd\n",
+			"stderr": "",
+			"exitCode": 0,
+			"duration": 12.89,
+			"memoryUsed": 616,
+			"timedOut": false
+		},
+		{
+			"requestId": "c4b50694-c15c-4ce7-ab76-5e3754eebeb7",
+			"stdout": "asdofasd\n",
+			"stderr": "",
+			"exitCode": 0,
+			"duration": 14.02,
+			"memoryUsed": 592,
+			"timedOut": false
+		}
+	]
+}
+```
+
+### 최종 메시지 예시 (`/execute_v3`)
+만약 채점 도중 특정 테스트케이스가 정답과 다를 경우 바로 중단되며 최종 메시지를 출력할 수 있습니다.
+```json
+{
+	"type": "final",
+	"problemId": "prob-004",
+	"allPassed": false,
+	"results": [
+		{
+			"id": 1,
+			"visibility": "public",
+			"passed": true,
+			"expected": "14",
+			"stdout": "14\n",
+			"stderr": "",
+			"exitCode": 0,
+			"duration": 13.35,
+			"memoryUsed": 588,
+			"timedOut": false
+		},
+		{
+			"id": 2,
+			"visibility": "hidden",
+			"passed": false,
+			"expected": "10",
+			"stdout": "10\n",
+			"stderr": "",
+			"exitCode": 0,
+			"duration": 13.24,
+			"memoryUsed": 616,
+			"timedOut": false
+		}
+	],
+	"total": 8
 }
 ```
 
@@ -160,29 +226,7 @@ curl -X POST http://localhost:8000/execute \
 }
 ```
 
-`requestId`는 `/ws/progress/{requestId}` WebSocket에 연결할 때 사용합니다. 서버는 각 테스트 케이스 결과를 순차적으로 전송하며 마지막 메시지에서 `type`이 `final`이면 채점이 완료된 것입니다. 해당 메시지에는 다음과 같이 채점 결과가 담깁니다.
-
-```json
-{
-  "type": "final",
-  "problemId": "prob-001",
-  "allPassed": true,
-  "results": [
-    {
-      "id": 1,
-      "visibility": "public",
-      "passed": true,
-      "stdout": "2",
-      "expected": "2",
-      "stderr": "",
-      "exitCode": 0,
-      "duration": 120,
-      "memoryUsed": 12288,
-      "timedOut": false
-    }
-  ]
-}
-```
+`requestId`는 `/ws/progress/{requestId}` WebSocket에 연결할 때 사용합니다. 서버는 각 테스트 케이스 결과를 순차적으로 전송하며 마지막 메시지에서 `type`이 `final`이면 채점이 완료된 것입니다.
 
 - `passed`가 `true`이면 해당 테스트 케이스를 통과한 것입니다.
 - `allPassed`가 `true`이면 모든 테스트 케이스를 통과했음을 의미합니다.
@@ -194,5 +238,4 @@ curl -X POST http://localhost:8000/execute \
 3. 서버가 보내는 `progress` / `final` 메시지를 수신합니다.
 4. `final` 메시지를 받은 뒤 WebSocket을 닫습니다.
 
-메시지 형식은 `/execute_v2`의 예시와 동일하며, 각 `progress` 메시지에는 `index`와 `result`가 포함됩니다. `index`는 문제의 테스트 케이스 순서를 나타냅니다.
-추가로 `total` 값이 포함되어 전체 테스트 케이스 수를 알려 줍니다. 이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.
+각 `progress` 메시지에는 `index`와 `result`가 포함됩니다. `index`는 문제의 테스트 케이스 순서를 나타냅니다. 추가로, `total` 값이 포함되어 전체 테스트 케이스 수를 알려줍니다. 이 `total` 값으로 유저가 채점 현황(%)을 보는 데에 사용할 수 있습니다. 이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.
