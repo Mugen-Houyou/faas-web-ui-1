@@ -2,7 +2,7 @@ let totalRuns = 1;
 
 function getBaseUrl() {
   const url = document.getElementById("apiUrl").value.trim();
-  return url || "http://localhost:8000";
+  return url || "http://localhost:18651";
 }
 
 function displayRunResults(data) {

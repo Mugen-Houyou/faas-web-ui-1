@@ -47,7 +47,7 @@
    ```
 7. Start the FastAPI backend:
    ```bash
-   uvicorn online_judge_backend.app.main:app --host 0.0.0.0 --port 8000
+   uvicorn online_judge_backend.app.main:app --host 0.0.0.0 --port 18651
    ```
 
 ## Running the Frontend
@@ -75,7 +75,7 @@ Problem definitions are stored as JSON under
 `online_judge_backend/static/codeground-problems`. Each file lists the test cases
 and limits used by `/execute_v3`.
 
-The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
+The frontend includes a field to specify the API URL. The default is `http://localhost:18651`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 
 ## Usage
 After entering a JWT token, select a language and write your code. If there is STDIN input, enter it as blocks separated by blank lines. Each block can contain multiple lines, and a new execution is triggered when a blank line is encountered. Press the **Execute!** button to receive an array of results, one per input block.
