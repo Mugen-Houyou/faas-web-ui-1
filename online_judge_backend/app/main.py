@@ -174,7 +174,14 @@ async def run_code_v3(req: CodeV3Request):
             "token": req.token,
         }
 
-        raw_results = await app.state.rpc.call(payload)
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future = loop.create_future()
+
+        async def on_resp(data: dict) -> None:
+            future.set_result(data)
+
+        request_id = await app.state.rpc.send(payload, on_response=on_resp)
+        raw_results = await future
         results = [ExecutionResult(**r) for r in raw_results]
 
         graded = []
@@ -202,7 +209,12 @@ async def run_code_v3(req: CodeV3Request):
                 }
             )
 
-        return {"problemId": req.problemId, "allPassed": all_passed, "results": graded}
+        return {
+            "problemId": req.problemId,
+            "allPassed": all_passed,
+            "results": graded,
+            "requestId": request_id,
+        }
 
     except HTTPException:
         raise
