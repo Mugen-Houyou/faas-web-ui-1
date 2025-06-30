@@ -195,4 +195,4 @@ curl -X POST http://localhost:8000/execute \
 4. `final` 메시지를 받은 뒤 WebSocket을 닫습니다.
 
 메시지 형식은 `/execute_v2`의 예시와 동일하며, 각 `progress` 메시지에는 `index`와 `result`가 포함됩니다. `index`는 문제의 테스트 케이스 순서를 나타냅니다.
-이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.
+추가로 `total` 값이 포함되어 전체 테스트 케이스 수를 알려 줍니다. 이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.

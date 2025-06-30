@@ -57,9 +57,13 @@ function watchProgress(requestId) {
   socket.onmessage = (e) => {
     const msg = JSON.parse(e.data);
     if (msg.type === "progress") {
+      if (msg.total) {
+        totalRuns = msg.total;
+      }
       results[msg.index] = msg.result;
+      const completed = results.filter((r) => r).length;
       displayRunResults(results.filter((r) => r));
-      updateProgress(results.filter((r) => r).length);
+      updateProgress(completed);
     } else if (msg.type === "final") {
       displayGradedResults(msg);
       socket.close();

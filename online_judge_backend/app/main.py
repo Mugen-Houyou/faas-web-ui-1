@@ -106,6 +106,8 @@ async def progress_consumer() -> None:
                 if not rid:
                     continue
                 data = json.loads(message.body)
+                if data.get("type") == "progress" and rid in app.state.v3_meta:
+                    data["total"] = app.state.v3_meta[rid]["total"]
                 if data.get("type") == "final" and rid in app.state.v3_meta:
                     meta = app.state.v3_meta.pop(rid)
                     results = [ExecutionResult(**r) for r in data["results"]]
@@ -136,6 +138,7 @@ async def progress_consumer() -> None:
                         "problemId": meta["problemId"],
                         "allPassed": all_passed,
                         "results": graded,
+                        "total": meta["total"],
                     }
 
                 conns = app.state.ws_connections.get(rid)
@@ -212,6 +215,7 @@ async def run_code_v3(req: CodeV3Request):
             "expected": expected,
             "tc_meta": tc_meta,
             "problemId": req.problemId,
+            "total": len(stdins),
         }
 
         return {"requestId": request_id}
