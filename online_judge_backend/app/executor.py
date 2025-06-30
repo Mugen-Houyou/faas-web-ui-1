@@ -218,9 +218,16 @@ async def execute_code_multiple(
     time_limit: int = 30000,
     memory_limit: int = 256,
     token: Optional[str] = None,
+    *,
+    expected: Optional[list[str]] = None,
+    early_stop: bool = False,
     progress_cb: Optional[Callable[[ExecutionResult, int], Awaitable[None]]] = None,
 ) -> list[ExecutionResult]:
-    """Compile once and run the code for each stdin in ``stdins``."""
+    """Compile once and run the code for each stdin in ``stdins``.
+
+    If ``early_stop`` is True and ``expected`` is provided, execution stops
+    upon the first failed test case.
+    """
     try:
         file_path = await compile_code(lang, code, token)
     except NotImplementedError:
@@ -244,6 +251,15 @@ async def execute_code_multiple(
             results.append(res)
             if progress_cb:
                 await progress_cb(res, idx)
+            if early_stop and expected and idx < len(expected):
+                passed = (
+                    res.exitCode == 0
+                    and not res.timedOut
+                    and res.stderr == ""
+                    and res.stdout.strip() == str(expected[idx]).strip()
+                )
+                if not passed:
+                    break
     finally:
         try:
             if lang is SupportedLanguage.java:

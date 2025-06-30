@@ -65,8 +65,10 @@ tested with `frontend/index_v3.html`, which calls the `/execute_v3` API. The
 `/execute_v3` endpoint streams judging progress in the same way as
 `/execute_v2`. Because the client does not know the number of test cases in
 advance, each progress message now includes a `total` field so the progress bar
-can be updated correctly. The HTTP response only contains a `requestId` and the
-final graded result is delivered via the WebSocket.
+can be updated correctly. If any test case fails, the remaining cases are skipped
+and the final graded result is returned immediately. The HTTP response only
+contains a `requestId` and the final graded result is delivered via the
+WebSocket.
 
 The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 

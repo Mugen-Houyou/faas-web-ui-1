@@ -152,7 +152,7 @@ curl -X POST http://localhost:8000/execute \
 - 다른 필드는 `/execute`와 동일하지만 `stdins`는 무시되고 문제의 테스트 케이스가 사용됩니다.
 
 ### 응답
-채점은 비동기적으로 진행되며 HTTP 응답에는 `requestId`만 포함됩니다. 진행 상황과 최종 결과는 WebSocket을 통해 전송됩니다.
+채점은 비동기적으로 진행되며 HTTP 응답에는 `requestId`만 포함됩니다. 진행 상황과 최종 결과는 WebSocket을 통해 전송됩니다. 테스트 케이스가 하나라도 실패하면 남은 케이스는 실행하지 않고 즉시 최종 결과를 반환합니다.
 
 ```json
 {

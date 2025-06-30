@@ -208,6 +208,8 @@ async def run_code_v3(req: CodeV3Request):
             "timeLimit": time_limit,
             "memoryLimit": memory_limit,
             "token": req.token,
+            "expected": expected,
+            "earlyStop": True,
         }
 
         request_id = await app.state.rpc.send(payload)

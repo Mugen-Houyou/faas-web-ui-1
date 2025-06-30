@@ -64,7 +64,7 @@ python -m http.server 8080
 아오는 비동기 API 동작을 확인할 수 있습니다. 문제 기반 채점은
 `frontend/index_v3.html` 페이지에서 `/execute_v3` API를 통해 확인할 수 있으며, `/execute_v3` 역시 `/execute_v2`와 마찬가지로 진행 상황을 WebSocket으로 전송합니다.
 
-클라이언트는 테스트 케이스 수를 미리 알 수 없으므로 각 `progress` 메시지에는 전체 개수를 나타내는 `total` 값이 포함됩니다. `/execute_v3`의 HTTP 응답에는 `requestId`만 포함되며 최종 채점 결과는 WebSocket 메시지로 전달됩니다.
+클라이언트는 테스트 케이스 수를 미리 알 수 없으므로 각 `progress` 메시지에는 전체 개수를 나타내는 `total` 값이 포함됩니다. 테스트 케이스가 하나라도 실패하면 남은 케이스는 실행하지 않고 즉시 결과가 전송됩니다. `/execute_v3`의 HTTP 응답에는 `requestId`만 포함되며 최종 채점 결과는 WebSocket 메시지로 전달됩니다.
 
 프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은 `http://localhost:8000`으로 FastAPI 백엔드를 가리킵니다. 다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다. 추가 오리진은 `.env` 파일의 `CORS_ALLOW_ORIGINS` 변수(콤마 구분)를 통해 지정할 수 있습니다.
 

@@ -45,6 +45,8 @@ async def main() -> None:
                         time_limit=data.get("timeLimit", 30000),
                         memory_limit=data.get("memoryLimit", 256),
                         token=data.get("token"),
+                        expected=data.get("expected"),
+                        early_stop=data.get("earlyStop", False),
                         progress_cb=progress_cb,
                     )
                     response = [r.model_dump() for r in results]
