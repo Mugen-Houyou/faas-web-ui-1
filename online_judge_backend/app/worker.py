@@ -59,6 +59,17 @@ async def main() -> None:
                     )
                 except Exception as e:
                     response = {"error": str(e)}
+                    await channel.default_exchange.publish(
+                        aio_pika.Message(
+                            body=json.dumps({
+                                "type": "final",
+                                "results": [],
+                                "error": str(e),
+                            }).encode(),
+                            correlation_id=message.correlation_id,
+                        ),
+                        routing_key="progress",
+                    )
 
                 await channel.default_exchange.publish(
                     aio_pika.Message(

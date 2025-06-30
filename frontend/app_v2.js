@@ -50,6 +50,12 @@ function watchProgress(requestId) {
       displayResults(results.filter((r) => r));
       updateProgress(results.filter((r) => r).length);
     } else if (msg.type === "final") {
+      if (msg.error) {
+        document.getElementById("stderr").textContent = msg.error;
+        updateProgress(totalRuns);
+        socket.close();
+        return;
+      }
       displayResults(msg.results);
       updateProgress(totalRuns);
       const allSuccess = msg.results.every(

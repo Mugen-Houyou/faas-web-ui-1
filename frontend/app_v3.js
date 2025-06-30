@@ -65,6 +65,12 @@ function watchProgress(requestId) {
       displayRunResults(results.filter((r) => r));
       updateProgress(completed);
     } else if (msg.type === "final") {
+      if (msg.error) {
+        document.getElementById("stderr").textContent = msg.error;
+        updateProgress(totalRuns);
+        socket.close();
+        return;
+      }
       displayGradedResults(msg);
       socket.close();
     }
