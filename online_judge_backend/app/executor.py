@@ -247,6 +247,7 @@ async def execute_code_multiple(
     results: list[ExecutionResult] = []
     try:
         for idx, data in enumerate(stdins):
+            # time.sleep(1)
             res = await run_code(lang, file_path, data, time_limit, memory_limit)
             results.append(res)
             if progress_cb:
