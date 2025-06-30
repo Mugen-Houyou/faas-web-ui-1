@@ -2,12 +2,13 @@
 
 [한국어 README](README.ko.md)
 
-An interface that allows you to execute code via a simple `/execute` API.
+- An interface that allows you to execute code via several HTTP endpoints.
 
 - Executes Python, Java, C, and C++ code
 - Returns **501 Not Implemented** for unsupported languages
-- The backend (in the `online_judge_backend` folder) provides the `/execute` API using FastAPI and
-  delivers jobs to workers via RabbitMQ.
+- The backend (in the `online_judge_backend` folder) exposes `/execute` for synchronous
+  runs and `/execute_v2`/`/execute_v3` for asynchronous processing. Jobs are delivered
+  to workers via RabbitMQ.
 - Workers can be started with the command `python -m online_judge_backend.app.worker`.
 - The frontend (in the `frontend` folder) is a demo web UI that utilizes the backend.
 
@@ -70,16 +71,20 @@ and the final graded result is returned immediately. The HTTP response only
 contains a `requestId` and the final graded result is delivered via the
 WebSocket.
 
+Problem definitions are stored as JSON under
+`online_judge_backend/static/codeground-problems`. Each file lists the test cases
+and limits used by `/execute_v3`.
+
 The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 
 ## Usage
 After entering a JWT token, select a language and write your code. If there is STDIN input, enter it as blocks separated by blank lines. Each block can contain multiple lines, and a new execution is triggered when a blank line is encountered. Press the **Execute!** button to receive an array of results, one per input block.
 
 ## REST API Specification
-Refer to the [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) file for detailed REST API specifications.
+Refer to [online_judge_backend/docs/API.md](online_judge_backend/docs/API.md) for an overview of the REST API. A more detailed Korean version is available at `API.ko.md`.
 
 ## Asynchronous Processing with RabbitMQ Server
-This codebase is designed with **asynchronous processing based on a RabbitMQ server** in mind. See the [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/API.ko.md) file for more information.
+This codebase is designed with **asynchronous processing based on a RabbitMQ server** in mind. See [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/RabbitMQ.ko.md) for more information.
 
 ## Building Docker Images for AWS ECR
 Two Dockerfiles are provided for running the backend and worker on ECS/Fargate.

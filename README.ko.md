@@ -1,10 +1,10 @@
 # Codeground 온라인 저지
 
-이 프로젝트는 클라이언트로부터 `POST /execute` 요청을 받아 코드를 컴파일 및 실행하여 `stdout`, `stderr`, 실행 시간, 총 메모리 사용량 등을 리턴하는 온라인 저지로, 데모용 프론트엔드 (`frontend`), FastAPI 백엔드 (`online_judge_backend\app\main.py`), 그리고 워커 프로세스 (`online_judge_backend\app\worker.py`)로 구성되어 있습니다. `backend` 폴더는 추후 삭제 예정이므로 무시해주세요.
+이 프로젝트는 클라이언트로부터 HTTP 요청을 받아 코드를 실행하고 채점 결과를 제공하는 온라인 저지입니다. 데모용 프론트엔드(`frontend`), FastAPI 백엔드(`online_judge_backend/app/main.py`), 그리고 워커 프로세스(`online_judge_backend/app/worker.py`)로 구성되어 있습니다. `backend` 폴더는 추후 삭제 예정이므로 무시해주세요.
 
 - Python, Java, C, C++ 코드를 실행
 - 지원하지 않는 언어는 **501 Not Implemented** 응답
-- 백엔드(`online_judge_backend` 폴더)는 FastAPI 기반 `/execute` API를 제공하며 RabbitMQ로 작업을 워커에 전달합니다.
+- 백엔드(`online_judge_backend` 폴더)는 FastAPI 기반 `/execute` API 외에도 `/execute_v2`, `/execute_v3` 엔드포인트를 제공하며 RabbitMQ로 작업을 워커에 전달합니다.
 - 워커는 `python -m online_judge_backend.app.worker` 명령으로 실행합니다.
 - 프론트엔드(`frontend` 폴더)는 백엔드를 사용할 수 있는 데모 웹 UI입니다.
 
@@ -66,13 +66,15 @@ python -m http.server 8080
 
 클라이언트는 테스트 케이스 수를 미리 알 수 없으므로 각 `progress` 메시지에는 전체 개수를 나타내는 `total` 값이 포함됩니다. 테스트 케이스가 하나라도 실패하면 남은 케이스는 실행하지 않고 즉시 결과가 전송됩니다. `/execute_v3`의 HTTP 응답에는 `requestId`만 포함되며 최종 채점 결과는 WebSocket 메시지로 전달됩니다.
 
+문제 정의는 `online_judge_backend/static/codeground-problems` 폴더의 JSON 파일로 관리됩니다. 각 파일에는 테스트 케이스와 제한 사항이 담겨 있으며 `/execute_v3`에서 사용됩니다.
+
 프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은 `http://localhost:8000`으로 FastAPI 백엔드를 가리킵니다. 다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다. 추가 오리진은 `.env` 파일의 `CORS_ALLOW_ORIGINS` 변수(콤마 구분)를 통해 지정할 수 있습니다.
 
 ## 사용법
 JWT 토큰을 입력한 뒤 언어와 코드를 작성하고 STDIN이 있다면 빈 줄로 구분된 블록 단위로 입력할 수 있습니다. 한 블록은 여러 줄을 포함할 수 있으며, 빈 줄이 나타날 때마다 다음 실행으로 인식됩니다. **실행!** 버튼을 누르면 각 블록에 대해 코드를 실행한 결과 배열을 돌려줍니다.
 
 ## REST API 명세
-REST API의 세부 규격은 [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) 파일을 참고하세요.
+REST API의 세부 규격은 [online_judge_backend/docs/API.ko.md](online_judge_backend/docs/API.ko.md) 파일을 참고하세요. 간단한 영어 버전은 `API.md`에서 확인할 수 있습니다.
 
 ## RabbitMQ 관련
 이 코드베이스는 **RabbitMQ 서버 기반 비동기 처리**를 상정하여 구성되었습니다. [online_judge_backend/docs/RabbitMQ.ko.md](online_judge_backend/docs/RabbitMQ.ko.md) 파일을 참고하세요.
