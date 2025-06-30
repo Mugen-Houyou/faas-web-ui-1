@@ -47,7 +47,7 @@
    ```
 8. `online_judge_backend/app`로 이동하여 FastAPI 백엔드를 실행합니다.
    ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000
+   uvicorn app.main:app --host 0.0.0.0 --port 18651
    ```
 
 ## 프론트엔드 실행
@@ -68,7 +68,7 @@ python -m http.server 8080
 
 문제 정의는 `online_judge_backend/static/codeground-problems` 폴더의 JSON 파일로 관리됩니다. 각 파일에는 테스트 케이스와 제한 사항이 담겨 있으며 `/execute_v3`에서 사용됩니다.
 
-프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은 `http://localhost:8000`으로 FastAPI 백엔드를 가리킵니다. 다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다. 추가 오리진은 `.env` 파일의 `CORS_ALLOW_ORIGINS` 변수(콤마 구분)를 통해 지정할 수 있습니다.
+프론트엔드에는 API 주소를 입력할 수 있는 필드가 있습니다. 기본값은 `http://localhost:18651`으로 FastAPI 백엔드를 가리킵니다. 다른 서버를 지정하는 경우 CORS 설정이 되어 있어야 합니다. 추가 오리진은 `.env` 파일의 `CORS_ALLOW_ORIGINS` 변수(콤마 구분)를 통해 지정할 수 있습니다.
 
 ## 사용법
 JWT 토큰을 입력한 뒤 언어와 코드를 작성하고 STDIN이 있다면 빈 줄로 구분된 블록 단위로 입력할 수 있습니다. 한 블록은 여러 줄을 포함할 수 있으며, 빈 줄이 나타날 때마다 다음 실행으로 인식됩니다. **실행!** 버튼을 누르면 각 블록에 대해 코드를 실행한 결과 배열을 돌려줍니다.

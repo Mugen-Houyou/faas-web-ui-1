@@ -2,7 +2,7 @@ let totalRuns = 1;
 
 function getBaseUrl() {
   const url = document.getElementById("apiUrl").value.trim();
-  return url || "http://localhost:8000";
+  return url || "http://localhost:18651";
 }
 
 function displayRunResults(data) {
@@ -65,6 +65,12 @@ function watchProgress(requestId) {
       displayRunResults(results.filter((r) => r));
       updateProgress(completed);
     } else if (msg.type === "final") {
+      if (msg.error) {
+        document.getElementById("stderr").textContent = msg.error;
+        updateProgress(totalRuns);
+        socket.close();
+        return;
+      }
       displayGradedResults(msg);
       socket.close();
     }

@@ -53,7 +53,7 @@
 
 ### 예시
 ```bash
-curl -X POST http://localhost:8000/execute \
+curl -X POST http://localhost:18651/execute \
   -H 'Content-Type: application/json' \
   -d '{
     "language": "python",

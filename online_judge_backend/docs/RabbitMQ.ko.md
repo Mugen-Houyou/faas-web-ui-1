@@ -39,7 +39,7 @@ docker stop rabbitmq && docker rm rabbitmq
 예를 들어, EC2 인스턴스 5대가 있다면, 
 - RabbitMQ 서버용 EC2 인스턴스 1대
 
-- FastAPI 백엔드용 EC2 인스턴스 1대 (`online_judge_backend.app.main:app --host 0.0.0.0 --port 8000`)
+- FastAPI 백엔드용 EC2 인스턴스 1대 (`online_judge_backend.app.main:app --host 0.0.0.0 --port 18651`)
 
 - 그리고 나머지 3대가 각각 워커 프로세스를 실행 (`python -m app.worker`)
 
