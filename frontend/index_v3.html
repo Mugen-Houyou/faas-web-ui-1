@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>Code Runner v3</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>Code Runner v3</h1>
+
+  <label for="lang">언어:</label>
+  <select id="lang">
+    <option value="python">Python</option>
+    <option value="java">Java</option>
+    <option value="c">C</option>
+    <option value="cpp">C++</option>
+  </select>
+
+  <div class="form-group">
+    <label for="apiUrl">API 엔드포인트 URL:</label>
+    <input id="apiUrl" type="text" value="http://localhost:8000">
+  </div>
+
+  <div class="form-group">
+    <label for="token">JWT 토큰 (필요 시):</label>
+    <input id="token" type="text" placeholder="Bearer token">
+  </div>
+
+  <div class="form-group">
+    <label for="problemId">문제 ID (예: prob-001):</label>
+    <input id="problemId" type="text" placeholder="prob-001">
+  </div>
+
+  <div class="form-group">
+    <label for="code">Code:</label>
+    <textarea id="code" rows="15" placeholder="코드를 입력하세요..."></textarea>
+  </div>
+
+  <button id="run">실행!</button>
+
+  <h2>결과</h2>
+  <p id="judgeMessage"></p>
+  <pre id="stdout"></pre>
+  <pre id="stderr" class="error"></pre>
+
+  <script src="app_v3.js"></script>
+</body>
+</html>

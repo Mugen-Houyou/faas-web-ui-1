@@ -132,3 +132,81 @@ async def ws_progress(websocket: WebSocket, request_id: str):
         conns.discard(websocket)
         if not conns:
             app.state.ws_connections.pop(request_id, None)
+
+
+class CodeV3Request(BaseModel):
+    language: SupportedLanguage
+    code: str
+    problemId: str
+    token: str | None = None
+
+
+@app.post("/execute_v3")
+async def run_code_v3(req: CodeV3Request):
+    try:
+        base = Path(__file__).resolve().parents[1] / "static" / "codeground-problems"
+        path = base / f"{req.problemId}.json"
+        if not path.exists():
+            raise HTTPException(status_code=404, detail="Problem not found")
+        with open(path, "r") as f:
+            problem = json.load(f)
+
+        if req.language.value not in problem.get("languages", []):
+            raise HTTPException(status_code=400, detail="Language not allowed")
+
+        time_limit = int(problem.get("time_limit_milliseconds", 30000))
+        mem_kb = int(problem.get("memory_limit_kilobytes", 262144))
+        memory_limit = mem_kb // 1024
+
+        stdins = [tc.get("input", "") for tc in problem.get("test_cases", [])]
+        expected = [tc.get("output", "") for tc in problem.get("test_cases", [])]
+        tc_meta = [
+            {"id": tc.get("id"), "visibility": tc.get("visibility", "public")}
+            for tc in problem.get("test_cases", [])
+        ]
+
+        payload = {
+            "language": req.language,
+            "code": req.code,
+            "stdins": stdins,
+            "timeLimit": time_limit,
+            "memoryLimit": memory_limit,
+            "token": req.token,
+        }
+
+        raw_results = await app.state.rpc.call(payload)
+        results = [ExecutionResult(**r) for r in raw_results]
+
+        graded = []
+        all_passed = True
+        for meta, exp, res in zip(tc_meta, expected, results):
+            passed = (
+                res.exitCode == 0
+                and not res.timedOut
+                and res.stderr == ""
+                and res.stdout.strip() == str(exp).strip()
+            )
+            all_passed = all_passed and passed
+            graded.append(
+                {
+                    "id": meta["id"],
+                    "visibility": meta["visibility"],
+                    "passed": passed,
+                    "expected": exp,
+                    "stdout": res.stdout,
+                    "stderr": res.stderr,
+                    "exitCode": res.exitCode,
+                    "duration": res.duration,
+                    "memoryUsed": res.memoryUsed,
+                    "timedOut": res.timedOut,
+                }
+            )
+
+        return {"problemId": req.problemId, "allPassed": all_passed, "results": graded}
+
+    except HTTPException:
+        raise
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))

@@ -130,3 +130,49 @@ curl -X POST http://localhost:8000/execute \
 ```
 
 `type`이 `final`인 메시지를 받은 뒤에는 클라이언트가 WebSocket 연결을 종료하면 됩니다.
+
+## POST `/execute_v3`
+
+지정된 문제에 대해 코드를 채점합니다. 문제 정보는 저장소의 `static/codeground-problems` 폴더에 있는 JSON 파일을 사용합니다.
+
+### 요청
+- **Method**: `POST`
+- **URL**: `/execute_v3`
+- **Body** (`application/json`)
+
+```json
+{
+  "language": "python",
+  "code": "print(input())",
+  "problemId": "prob-001",
+  "token": null
+}
+```
+- `problemId`: 채점에 사용할 문제 ID(예: `prob-001`)
+- 다른 필드는 `/execute`와 동일하지만 `stdins`는 무시되고 문제의 테스트 케이스가 사용됩니다.
+
+### 응답
+성공 시 다음 형식의 JSON을 반환합니다.
+
+```json
+{
+  "problemId": "prob-001",
+  "allPassed": true,
+  "results": [
+    {
+      "id": 1,
+      "visibility": "public",
+      "passed": true,
+      "stdout": "2",
+      "expected": "2",
+      "stderr": "",
+      "exitCode": 0,
+      "duration": 120,
+      "memoryUsed": 12288,
+      "timedOut": false
+    }
+  ]
+}
+```
+- `passed`가 `true`이면 해당 테스트 케이스를 통과한 것입니다.
+- `allPassed`가 `true`이면 모든 테스트 케이스를 통과했음을 의미합니다.
