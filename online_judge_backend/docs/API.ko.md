@@ -152,13 +152,21 @@ curl -X POST http://localhost:8000/execute \
 - 다른 필드는 `/execute`와 동일하지만 `stdins`는 무시되고 문제의 테스트 케이스가 사용됩니다.
 
 ### 응답
-채점은 비동기적으로 진행되며 WebSocket으로 진행 상황이 전송됩니다. HTTP 응답에는 최종 결과와 `requestId`가 포함됩니다.
+채점은 비동기적으로 진행되며 HTTP 응답에는 `requestId`만 포함됩니다. 진행 상황과 최종 결과는 WebSocket을 통해 전송됩니다.
 
 ```json
 {
+  "requestId": "UUID"
+}
+```
+
+`requestId`는 `/ws/progress/{requestId}` WebSocket에 연결할 때 사용합니다. 서버는 각 테스트 케이스 결과를 순차적으로 전송하며 마지막 메시지에서 `type`이 `final`이면 채점이 완료된 것입니다. 해당 메시지에는 다음과 같이 채점 결과가 담깁니다.
+
+```json
+{
+  "type": "final",
   "problemId": "prob-001",
   "allPassed": true,
-  "requestId": "UUID",
   "results": [
     {
       "id": 1,
@@ -175,9 +183,9 @@ curl -X POST http://localhost:8000/execute \
   ]
 }
 ```
+
 - `passed`가 `true`이면 해당 테스트 케이스를 통과한 것입니다.
 - `allPassed`가 `true`이면 모든 테스트 케이스를 통과했음을 의미합니다.
-- `requestId`는 `/ws/progress/{requestId}` WebSocket에 연결할 때 사용합니다. 서버는 각 테스트 케이스 결과를 스트리밍하며 마지막 메시지에서 `type`이 `final`이면 채점이 완료된 것입니다.
 
 ### 진행 상황 구독
 `/execute_v2`에서와 동일한 방식으로 채점 진행 상황을 받을 수 있습니다. 기본 흐름은 다음과 같습니다.

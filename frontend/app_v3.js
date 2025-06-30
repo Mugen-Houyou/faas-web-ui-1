@@ -61,9 +61,7 @@ function watchProgress(requestId) {
       displayRunResults(results.filter((r) => r));
       updateProgress(results.filter((r) => r).length);
     } else if (msg.type === "final") {
-      displayRunResults(msg.results);
-      totalRuns = msg.results.length;
-      updateProgress(totalRuns);
+      displayGradedResults(msg);
       socket.close();
     }
   };
@@ -101,5 +99,4 @@ document.getElementById("run").addEventListener("click", async () => {
   }
 
   watchProgress(data.requestId);
-  displayGradedResults(data);
 });

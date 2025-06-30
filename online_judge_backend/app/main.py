@@ -27,6 +27,7 @@ load_dotenv(dotenv_path=env_path, override=False)
 app = FastAPI()
 app.state.ws_connections: Dict[str, Set[WebSocket]] = {}
 app.state.progress_queue = None
+app.state.v3_meta: Dict[str, dict] = {}
 
 # CORS 설정
 # 기본 오리진 목록을 환경 변수로 확장할 수 있다.
@@ -105,6 +106,38 @@ async def progress_consumer() -> None:
                 if not rid:
                     continue
                 data = json.loads(message.body)
+                if data.get("type") == "final" and rid in app.state.v3_meta:
+                    meta = app.state.v3_meta.pop(rid)
+                    results = [ExecutionResult(**r) for r in data["results"]]
+                    graded = []
+                    all_passed = True
+                    for m, exp, res in zip(meta["tc_meta"], meta["expected"], results):
+                        passed = (
+                            res.exitCode == 0
+                            and not res.timedOut
+                            and res.stderr == ""
+                            and res.stdout.strip() == str(exp).strip()
+                        )
+                        all_passed = all_passed and passed
+                        graded.append({
+                            "id": m["id"],
+                            "visibility": m["visibility"],
+                            "passed": passed,
+                            "expected": exp,
+                            "stdout": res.stdout,
+                            "stderr": res.stderr,
+                            "exitCode": res.exitCode,
+                            "duration": res.duration,
+                            "memoryUsed": res.memoryUsed,
+                            "timedOut": res.timedOut,
+                        })
+                    data = {
+                        "type": "final",
+                        "problemId": meta["problemId"],
+                        "allPassed": all_passed,
+                        "results": graded,
+                    }
+
                 conns = app.state.ws_connections.get(rid)
                 if conns:
                     to_remove = set()
@@ -174,47 +207,14 @@ async def run_code_v3(req: CodeV3Request):
             "token": req.token,
         }
 
-        loop = asyncio.get_running_loop()
-        future: asyncio.Future = loop.create_future()
-
-        async def on_resp(data: dict) -> None:
-            future.set_result(data)
-
-        request_id = await app.state.rpc.send(payload, on_response=on_resp)
-        raw_results = await future
-        results = [ExecutionResult(**r) for r in raw_results]
-
-        graded = []
-        all_passed = True
-        for meta, exp, res in zip(tc_meta, expected, results):
-            passed = (
-                res.exitCode == 0
-                and not res.timedOut
-                and res.stderr == ""
-                and res.stdout.strip() == str(exp).strip()
-            )
-            all_passed = all_passed and passed
-            graded.append(
-                {
-                    "id": meta["id"],
-                    "visibility": meta["visibility"],
-                    "passed": passed,
-                    "expected": exp,
-                    "stdout": res.stdout,
-                    "stderr": res.stderr,
-                    "exitCode": res.exitCode,
-                    "duration": res.duration,
-                    "memoryUsed": res.memoryUsed,
-                    "timedOut": res.timedOut,
-                }
-            )
-
-        return {
+        request_id = await app.state.rpc.send(payload)
+        app.state.v3_meta[request_id] = {
+            "expected": expected,
+            "tc_meta": tc_meta,
             "problemId": req.problemId,
-            "allPassed": all_passed,
-            "results": graded,
-            "requestId": request_id,
         }
+
+        return {"requestId": request_id}
 
     except HTTPException:
         raise

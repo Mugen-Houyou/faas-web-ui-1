@@ -63,7 +63,8 @@ endpoint. The `frontend/index_v2.html` page demonstrates the asynchronous API
 that streams progress over WebSockets. Problem-based judging can also be
 tested with `frontend/index_v3.html`, which calls the `/execute_v3` API. The
 `/execute_v3` endpoint streams judging progress in the same way as
-`/execute_v2` while returning the final graded result when complete.
+`/execute_v2`; the HTTP response only contains a `requestId` and the final
+graded result is delivered via the WebSocket.
 
 The frontend includes a field to specify the API URL. The default is `http://localhost:8000`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 
