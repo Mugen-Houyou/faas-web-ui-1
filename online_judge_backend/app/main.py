@@ -1,11 +1,3 @@
-"""Simple code execution API used by the frontend.
-
-The backend compiles supported languages (Python, C, C++, and Java) and runs
-the resulting program locally. Unsupported languages raise
-``NotImplementedError`` which results in a ``501 Not Implemented`` response.
-Run with ``uvicorn app.main:app``.
-"""
-
 import os
 import json
 import asyncio
@@ -25,6 +17,13 @@ from .rabbitmq_rpc import RpcClient, get_rpc_client
 # Load ../.env relative to this file so it works regardless of cwd
 env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(dotenv_path=env_path, override=False)
+
+AWS_ACCESS_KEY_ID=os.getenv("AWS_ACCESS_KEY_ID"),
+AWS_SECRET_ACCESS_KEY=os.getenv("AWS_SECRET_ACCESS_KEY"),
+AWS_REGION=os.getenv("AWS_REGION"),
+AWS_PROBLEMS_BUCKET = os.getenv("AWS_PROBLEMS_BUCKET", "codeground-problems")
+AWS_PROBLEMS_BUCKET_PREFIX = os.getenv("AWS_PROBLEMS_BUCKET_PREFIX", "").strip("/")
+PROBLEMS_BUCKET_ENDPOINT = os.getenv("PROBLEMS_BUCKET_ENDPOINT")
 
 app = FastAPI()
 app.state.ws_connections: Dict[str, Set[WebSocket]] = {}
@@ -68,6 +67,11 @@ async def startup() -> None:
     print(f"Connecting to RabbitMQ at {url}")
     app.state.rpc: RpcClient = await get_rpc_client()
     app.state.progress_queue = await app.state.rpc.channel.declare_queue("progress", durable=True)
+    app.state.s3_session = aioboto3.Session()
+    app.state.aws_region = AWS_REGION
+    app.state.problems_bucket = AWS_PROBLEMS_BUCKET
+    prefix = AWS_PROBLEMS_BUCKET_PREFIX.strip("/")
+    app.state.problems_prefix = f"{prefix}/" if prefix else ""
     asyncio.create_task(progress_consumer())
 
 
@@ -179,39 +183,23 @@ class CodeV3Request(BaseModel):
     problemId: str
     token: str | None = None
 
-
-async def _load_problem(problem_id: str) -> dict:
-    """Fetch problem definition JSON from the configured S3 bucket."""
-    bucket = os.getenv("AWS_PROBLEMS_BUCKET", "codeground-problems")
-    prefix = os.getenv("AWS_PROBLEMS_BUCKET_PREFIX", "").strip("/")
-    endpoint = os.getenv("PROBLEMS_BUCKET_ENDPOINT")
-
-    key = f"{prefix}/{problem_id}.json" if prefix else f"{problem_id}.json"
-
-    session = aioboto3.Session()
-    async with session.client(
-        "s3",
-        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
-        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
-        region_name=os.getenv("AWS_REGION"),
-        endpoint_url=endpoint,
-    ) as s3:
-        try:
-            resp = await s3.get_object(Bucket=bucket, Key=key)
-            data = await resp["Body"].read()
-        except ClientError as e:
-            code = e.response.get("Error", {}).get("Code", "")
-            if code in ("NoSuchKey", "404"):
-                raise HTTPException(status_code=404, detail="Problem not found")
-            raise HTTPException(status_code=500, detail="Failed to load problem")
-
-    return json.loads(data)
-
-
 @app.post("/execute_v3")
 async def run_code_v3(req: CodeV3Request):
     try:
-        problem = await _load_problem(req.problemId)
+        key = f"{app.state.problems_prefix}{req.problemId}.json"
+        try:
+            async with app.state.s3_session.client(
+                "s3", region_name=app.state.aws_region
+            ) as s3:
+                obj = await s3.get_object(
+                    Bucket=app.state.problems_bucket, Key=key
+                )
+                body = await obj["Body"].read()
+                problem = json.loads(body)
+        except ClientError as e:
+            if e.response.get("Error", {}).get("Code") == "NoSuchKey":
+                raise HTTPException(status_code=404, detail="Problem not found")
+            raise HTTPException(status_code=500, detail="Failed to fetch problem")
 
         if req.language.value not in problem.get("languages", []):
             raise HTTPException(status_code=400, detail="Language not allowed")
