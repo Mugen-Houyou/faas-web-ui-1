@@ -22,7 +22,9 @@ Please refer to the `API.ko.md` for the specific JSON format.
 ## POST `/execute_v3`
 
 Grades the given code against the problem specified by `problemId`. Test case data
-is loaded from an S3 bucket as configured in `.env`.
+is normally loaded from an S3 bucket as configured in `.env`. If the AWS settings
+are missing or the bucket cannot be reached, the server falls back to the JSON
+files bundled in `online_judge_backend/static`.
 
 Please refer to the `API.ko.md` for the specific JSON format.
 

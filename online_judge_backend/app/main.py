@@ -67,16 +67,24 @@ async def startup() -> None:
     print(f"Connecting to RabbitMQ at {url}")
     app.state.rpc: RpcClient = await get_rpc_client()
     app.state.progress_queue = await app.state.rpc.channel.declare_queue("progress", durable=True)
-    app.state.s3_session = aioboto3.Session(
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION,
-    )
+    if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_REGION:
+        app.state.s3_session = aioboto3.Session(
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_REGION,
+        )
+    else:
+        app.state.s3_session = None
     app.state.aws_region = AWS_REGION
     app.state.problems_bucket = AWS_PROBLEMS_BUCKET
     prefix = AWS_PROBLEMS_BUCKET_PREFIX.strip("/")
     app.state.problems_prefix = f"{prefix}/" if prefix else ""
     app.state.problems_endpoint = PROBLEMS_BUCKET_ENDPOINT
+    app.state.problems_local_dir = (
+        Path(__file__).resolve().parents[1]
+        / "static"
+        / app.state.problems_bucket
+    )
     asyncio.create_task(progress_consumer())
 
 
@@ -190,20 +198,35 @@ class CodeV3Request(BaseModel):
 
 
 async def _fetch_problem(problem_id: str) -> dict:
-    """Load a problem definition from the configured S3 bucket."""
+    """Load a problem definition from S3 if possible, otherwise from local files."""
     key = f"{app.state.problems_prefix}{problem_id}.json"
+    if app.state.s3_session:
+        try:
+            async with app.state.s3_session.client(
+                "s3",
+                region_name=app.state.aws_region,
+                endpoint_url=app.state.problems_endpoint,
+            ) as s3:
+                obj = await s3.get_object(
+                    Bucket=app.state.problems_bucket,
+                    Key=key,
+                )
+                body = await obj["Body"].read()
+                return json.loads(body)
+        except ClientError as e:
+            if e.response.get("Error", {}).get("Code") == "NoSuchKey":
+                raise HTTPException(status_code=404, detail="Problem not found")
+            # Any other error will fall back to local files
+        except Exception:
+            pass
+
+    path = app.state.problems_local_dir / key
     try:
-        async with app.state.s3_session.client(
-            "s3",
-            region_name=app.state.aws_region,
-            endpoint_url=app.state.problems_endpoint,
-        ) as s3:
-            obj = await s3.get_object(Bucket=app.state.problems_bucket, Key=key)
-            body = await obj["Body"].read()
-            return json.loads(body)
-    except ClientError as e:
-        if e.response.get("Error", {}).get("Code") == "NoSuchKey":
-            raise HTTPException(status_code=404, detail="Problem not found")
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    except Exception:
         raise HTTPException(status_code=500, detail="Failed to fetch problem")
 
 @app.post("/execute_v3")
