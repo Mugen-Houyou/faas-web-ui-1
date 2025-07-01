@@ -212,14 +212,19 @@ async def _fetch_problem(problem_id: str) -> dict:
                     Key=key,
                 )
                 body = await obj["Body"].read()
+                print(f"Fetching problem {problem_id} from AWS S3")
                 return json.loads(body)
         except ClientError as e:
             if e.response.get("Error", {}).get("Code") == "NoSuchKey":
                 raise HTTPException(status_code=404, detail="Problem not found")
             # Any other error will fall back to local files
-        except Exception:
-            pass
+            print(f"ClientError details: {e}")
+        except Exception as ex:
+            print(f"Exception details: {ex}")
 
+
+    # Fallback to local files
+    print(f"Fetching problem {problem_id} from local files")
     path = app.state.problems_local_dir / key
     try:
         with open(path, "r", encoding="utf-8") as f:
