@@ -37,6 +37,7 @@ origins = [
     "http://localhost:3000",
     "http://localhost:8080",
     "http://localhost:8000",
+    "http://localhost:8097",
     "http://localhost:18651",
 ]
 
@@ -201,6 +202,7 @@ async def _fetch_problem(problem_id: str) -> dict:
     """Load a problem definition from S3 if possible, otherwise from local files."""
     key = f"{app.state.problems_prefix}{problem_id}.json"
     if app.state.s3_session:
+        print("app.state.s3_session=True, Attempting to fetch problem %s from AWS S3", problem_id)
         try:
             async with app.state.s3_session.client(
                 "s3",
@@ -224,7 +226,7 @@ async def _fetch_problem(problem_id: str) -> dict:
 
 
     # Fallback to local files
-    print(f"Fetching problem {problem_id} from local files")
+    print(f"app.state.s3_session=False, Fetching problem {problem_id} from local files")
     path = app.state.problems_local_dir / key
     try:
         with open(path, "r", encoding="utf-8") as f:
