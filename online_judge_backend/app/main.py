@@ -18,9 +18,9 @@ from .rabbitmq_rpc import RpcClient, get_rpc_client
 env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(dotenv_path=env_path, override=False)
 
-AWS_ACCESS_KEY_ID=os.getenv("AWS_ACCESS_KEY_ID"),
-AWS_SECRET_ACCESS_KEY=os.getenv("AWS_SECRET_ACCESS_KEY"),
-AWS_REGION=os.getenv("AWS_REGION"),
+AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("AWS_REGION")
 AWS_PROBLEMS_BUCKET = os.getenv("AWS_PROBLEMS_BUCKET", "codeground-problems")
 AWS_PROBLEMS_BUCKET_PREFIX = os.getenv("AWS_PROBLEMS_BUCKET_PREFIX", "").strip("/")
 PROBLEMS_BUCKET_ENDPOINT = os.getenv("PROBLEMS_BUCKET_ENDPOINT")
@@ -67,11 +67,16 @@ async def startup() -> None:
     print(f"Connecting to RabbitMQ at {url}")
     app.state.rpc: RpcClient = await get_rpc_client()
     app.state.progress_queue = await app.state.rpc.channel.declare_queue("progress", durable=True)
-    app.state.s3_session = aioboto3.Session()
+    app.state.s3_session = aioboto3.Session(
+        aws_access_key_id=AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+        region_name=AWS_REGION,
+    )
     app.state.aws_region = AWS_REGION
     app.state.problems_bucket = AWS_PROBLEMS_BUCKET
     prefix = AWS_PROBLEMS_BUCKET_PREFIX.strip("/")
     app.state.problems_prefix = f"{prefix}/" if prefix else ""
+    app.state.problems_endpoint = PROBLEMS_BUCKET_ENDPOINT
     asyncio.create_task(progress_consumer())
 
 
@@ -183,23 +188,28 @@ class CodeV3Request(BaseModel):
     problemId: str
     token: str | None = None
 
+
+async def _fetch_problem(problem_id: str) -> dict:
+    """Load a problem definition from the configured S3 bucket."""
+    key = f"{app.state.problems_prefix}{problem_id}.json"
+    try:
+        async with app.state.s3_session.client(
+            "s3",
+            region_name=app.state.aws_region,
+            endpoint_url=app.state.problems_endpoint,
+        ) as s3:
+            obj = await s3.get_object(Bucket=app.state.problems_bucket, Key=key)
+            body = await obj["Body"].read()
+            return json.loads(body)
+    except ClientError as e:
+        if e.response.get("Error", {}).get("Code") == "NoSuchKey":
+            raise HTTPException(status_code=404, detail="Problem not found")
+        raise HTTPException(status_code=500, detail="Failed to fetch problem")
+
 @app.post("/execute_v3")
 async def run_code_v3(req: CodeV3Request):
     try:
-        key = f"{app.state.problems_prefix}{req.problemId}.json"
-        try:
-            async with app.state.s3_session.client(
-                "s3", region_name=app.state.aws_region
-            ) as s3:
-                obj = await s3.get_object(
-                    Bucket=app.state.problems_bucket, Key=key
-                )
-                body = await obj["Body"].read()
-                problem = json.loads(body)
-        except ClientError as e:
-            if e.response.get("Error", {}).get("Code") == "NoSuchKey":
-                raise HTTPException(status_code=404, detail="Problem not found")
-            raise HTTPException(status_code=500, detail="Failed to fetch problem")
+        problem = await _fetch_problem(req.problemId)
 
         if req.language.value not in problem.get("languages", []):
             raise HTTPException(status_code=400, detail="Language not allowed")
