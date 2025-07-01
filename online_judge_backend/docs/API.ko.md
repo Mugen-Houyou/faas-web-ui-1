@@ -90,7 +90,7 @@ curl -X POST http://localhost:18651/execute \
 
 ## POST `/execute_v3`
 
-실제 백준, 프로그래머스, LeetCode 등과 같이 지정된 문제에 대해 코드를 채점합니다. 문제 정보는 저장소의 `static/codeground-problems` 폴더에 있는 JSON 파일을 사용합니다. 구체적인 WebSocket 스펙에 대해서는 아래를 참조하세요.
+실제 백준, 프로그래머스, LeetCode 등과 같이 지정된 문제에 대해 코드를 채점합니다. 문제 정보는 S3 버킷에서 읽어옵니다. 사용되는 버킷과 경로는 `.env` 파일에서 설정합니다. 구체적인 WebSocket 스펙에 대해서는 아래를 참조하세요.
 
 ### 요청
 - **Method**: `POST`

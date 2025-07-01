@@ -4,3 +4,4 @@ pydantic
 python-dotenv
 psutil
 aio_pika
+aioboto3

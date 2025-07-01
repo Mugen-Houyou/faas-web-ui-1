@@ -21,7 +21,8 @@ Please refer to the `API.ko.md` for the specific JSON format.
 
 ## POST `/execute_v3`
 
-Grades the given code against the problem specified by `problemId`. Test case data is read from `static/codeground-problems/{problemId}.json`.
+Grades the given code against the problem specified by `problemId`. Test case data
+is loaded from an S3 bucket as configured in `.env`.
 
 Please refer to the `API.ko.md` for the specific JSON format.
 

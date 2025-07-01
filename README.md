@@ -71,9 +71,9 @@ and the final graded result is returned immediately. The HTTP response only
 contains a `requestId` and the final graded result is delivered via the
 WebSocket.
 
-Problem definitions are stored as JSON under
-`online_judge_backend/static/codeground-problems`. Each file lists the test cases
-and limits used by `/execute_v3`.
+Problem definitions are stored as JSON files in an AWS S3 bucket. See
+`online_judge_backend/.env.example` for the environment variables that specify
+the bucket and prefix used by `/execute_v3`.
 
 The frontend includes a field to specify the API URL. The default is `http://localhost:18651`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 

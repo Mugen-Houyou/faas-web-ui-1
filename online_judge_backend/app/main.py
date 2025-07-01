@@ -15,6 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pathlib import Path
+import aioboto3
+from botocore.exceptions import ClientError
 
 from .executor import SupportedLanguage, ExecutionResult
 from .rabbitmq_rpc import RpcClient, get_rpc_client
@@ -178,15 +180,38 @@ class CodeV3Request(BaseModel):
     token: str | None = None
 
 
+async def _load_problem(problem_id: str) -> dict:
+    """Fetch problem definition JSON from the configured S3 bucket."""
+    bucket = os.getenv("AWS_PROBLEMS_BUCKET", "codeground-problems")
+    prefix = os.getenv("AWS_PROBLEMS_BUCKET_PREFIX", "").strip("/")
+    endpoint = os.getenv("PROBLEMS_BUCKET_ENDPOINT")
+
+    key = f"{prefix}/{problem_id}.json" if prefix else f"{problem_id}.json"
+
+    session = aioboto3.Session()
+    async with session.client(
+        "s3",
+        aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("AWS_SECRET_ACCESS_KEY"),
+        region_name=os.getenv("AWS_REGION"),
+        endpoint_url=endpoint,
+    ) as s3:
+        try:
+            resp = await s3.get_object(Bucket=bucket, Key=key)
+            data = await resp["Body"].read()
+        except ClientError as e:
+            code = e.response.get("Error", {}).get("Code", "")
+            if code in ("NoSuchKey", "404"):
+                raise HTTPException(status_code=404, detail="Problem not found")
+            raise HTTPException(status_code=500, detail="Failed to load problem")
+
+    return json.loads(data)
+
+
 @app.post("/execute_v3")
 async def run_code_v3(req: CodeV3Request):
     try:
-        base = Path(__file__).resolve().parents[1] / "static" / "codeground-problems"
-        path = base / f"{req.problemId}.json"
-        if not path.exists():
-            raise HTTPException(status_code=404, detail="Problem not found")
-        with open(path, "r") as f:
-            problem = json.load(f)
+        problem = await _load_problem(req.problemId)
 
         if req.language.value not in problem.get("languages", []):
             raise HTTPException(status_code=400, detail="Language not allowed")
