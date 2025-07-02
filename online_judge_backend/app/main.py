@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 from typing import List, Dict, Set
+from enum import Enum
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -24,6 +25,13 @@ AWS_REGION = os.getenv("AWS_REGION")
 AWS_PROBLEMS_BUCKET = os.getenv("AWS_PROBLEMS_BUCKET", "codeground-problems")
 AWS_PROBLEMS_BUCKET_PREFIX = os.getenv("AWS_PROBLEMS_BUCKET_PREFIX", "").strip("/")
 PROBLEMS_BUCKET_ENDPOINT = os.getenv("PROBLEMS_BUCKET_ENDPOINT")
+
+class ResultStatus(str, Enum):
+    SUCCESS = "success"
+    COMPILE_ERROR = "compile_error"
+    WRONG_OUTPUT = "wrong_output"
+    TIMEOUT = "timeout"
+    FAILURE = "failure"
 
 app = FastAPI()
 app.state.ws_connections: Dict[str, Set[WebSocket]] = {}
@@ -135,17 +143,31 @@ async def progress_consumer() -> None:
                     graded = []
                     all_passed = True
                     for m, exp, res in zip(meta["tc_meta"], meta["expected"], results):
-                        passed = (
+                        if res.exitCode == -1 and res.stderr:
+                            status = ResultStatus.COMPILE_ERROR
+                        elif res.timedOut:
+                            status = ResultStatus.TIMEOUT
+                        elif (
                             res.exitCode == 0
-                            and not res.timedOut
                             and res.stderr == ""
                             and res.stdout.strip() == str(exp).strip()
-                        )
+                        ):
+                            status = ResultStatus.SUCCESS
+                        elif (
+                            res.exitCode == 0
+                            and res.stderr == ""
+                        ):
+                            status = ResultStatus.WRONG_OUTPUT
+                        else:
+                            status = ResultStatus.FAILURE
+
+                        passed = status is ResultStatus.SUCCESS
                         all_passed = all_passed and passed
                         graded.append({
                             "id": m["id"],
                             "visibility": m["visibility"],
                             "passed": passed,
+                            "status": status.value,
                             "expected": exp,
                             "stdout": res.stdout,
                             "stderr": res.stderr,

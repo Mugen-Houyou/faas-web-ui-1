@@ -26,7 +26,14 @@ function displayRunResults(data) {
 
 function displayGradedResults(data) {
   const lines = data.results.map((r) => {
-    const status = r.passed ? "PASS" : "FAIL";
+    const statusMap = {
+      success: "PASS",
+      compile_error: "COMPILE ERROR",
+      wrong_output: "WRONG OUTPUT",
+      timeout: "TIMEOUT",
+      failure: "FAIL",
+    };
+    const status = statusMap[r.status] || r.status;
     return (
       `#${r.id} [${r.visibility}] ${status}\n` +
       `stdout: ${r.stdout}\n` +
