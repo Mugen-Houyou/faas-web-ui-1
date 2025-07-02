@@ -136,7 +136,30 @@ async def progress_consumer() -> None:
                     continue
                 data = json.loads(message.body)
                 if data.get("type") == "progress" and rid in app.state.v3_meta:
-                    data["total"] = app.state.v3_meta[rid]["total"]
+                    meta = app.state.v3_meta[rid]
+                    data["total"] = meta["total"]
+                    try:
+                        idx = int(data.get("index", -1))
+                        if 0 <= idx < len(meta["expected"]):
+                            exp = meta["expected"][idx]
+                            res = ExecutionResult(**data["result"])
+                            if res.exitCode == -1 and res.stderr:
+                                status = ResultStatus.COMPILE_ERROR
+                            elif res.timedOut:
+                                status = ResultStatus.TIMEOUT
+                            elif (
+                                res.exitCode == 0
+                                and res.stderr == ""
+                                and res.stdout.strip() == str(exp).strip()
+                            ):
+                                status = ResultStatus.SUCCESS
+                            elif res.exitCode == 0 and res.stderr == "":
+                                status = ResultStatus.WRONG_OUTPUT
+                            else:
+                                status = ResultStatus.FAILURE
+                            data["result"]["status"] = status.value
+                    except Exception:
+                        pass
                 if data.get("type") == "final" and rid in app.state.v3_meta:
                     meta = app.state.v3_meta.pop(rid)
                     results = [ExecutionResult(**r) for r in data["results"]]

@@ -6,8 +6,18 @@ function getBaseUrl() {
 }
 
 function displayRunResults(data) {
+  const statusMap = {
+    success: "PASS",
+    compile_error: "COMPILE ERROR",
+    wrong_output: "WRONG OUTPUT",
+    timeout: "TIMEOUT",
+    failure: "FAIL",
+  };
   const out = data
-    .map((r, i) => `#${i + 1}\n${r.stdout || ""}`)
+    .map((r, i) => {
+      const status = r.status ? ` [${statusMap[r.status] || r.status}]` : "";
+      return `#${i + 1}${status}\n${r.stdout || ""}`;
+    })
     .join("\n---\n");
   const err = data
     .map((r) => r.stderr)
@@ -15,8 +25,10 @@ function displayRunResults(data) {
     .join("\n---\n");
   const met = data
     .map(
-      (r, i) =>
-        `#${i + 1} exitCode: ${r.exitCode}, duration: ${r.duration.toFixed(0)}ms, memory: ${r.memoryUsed}KB, timedOut: ${r.timedOut}`
+      (r, i) => {
+        const status = r.status ? `, status: ${statusMap[r.status] || r.status}` : "";
+        return `#${i + 1} exitCode: ${r.exitCode}, duration: ${r.duration.toFixed(0)}ms, memory: ${r.memoryUsed}KB, timedOut: ${r.timedOut}${status}`;
+      }
     )
     .join("\n");
   document.getElementById("stdout").textContent = out;

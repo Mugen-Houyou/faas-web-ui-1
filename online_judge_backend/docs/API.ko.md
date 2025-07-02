@@ -124,6 +124,7 @@ curl -X POST http://localhost:18651/execute \
 - `status`는 `success`, `compile_error`, `wrong_output`, `timeout`, `failure`
   중 하나로 채점 결과를 세분화한 값입니다. `success`일 때만 `passed`가 `true`입니다.
 - `allPassed`가 `true`이면 모든 테스트 케이스를 통과했음을 의미합니다.
+- `/execute_v3`의 경우 각 `progress` 메시지에서도 `result.status`가 포함됩니다.
 
 ## WebSocket `/ws/progress/{request_id}`
 
@@ -161,7 +162,8 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
     "exitCode": 0,
     "duration": 120,
     "memoryUsed": 12288,
-    "timedOut": false
+    "timedOut": false,
+    "status": "success"
   },
   "total": 8
 }
@@ -243,3 +245,4 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
 4. `final` 메시지를 받은 뒤 WebSocket을 닫습니다.
 
 각 `progress` 메시지에는 `index`와 `result`가 포함됩니다. `index`는 문제의 테스트 케이스 순서를 나타냅니다. 추가로, `POST /execute_v3`을 이용하였을 경우 `total` 값이 포함되어 전체 테스트 케이스 수를 알려줍니다. 이 `total` 값으로 유저가 채점 현황(%)을 보는 데에 사용할 수 있습니다. 이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.
+또한 `/execute_v3`의 진행 메시지 `result`에는 즉시 판별된 `status` 값이 포함됩니다.
