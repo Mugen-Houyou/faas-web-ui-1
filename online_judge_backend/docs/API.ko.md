@@ -107,6 +107,7 @@ curl -X POST http://localhost:18651/execute \
 ```
 - `problemId`: 채점에 사용할 문제 ID(예: `prob-001`)
 - 다른 필드는 `/execute`와 동일하지만 `stdins`, `timeLimit`, `memoryLimit`는 무시되고 문제의 테스트 케이스가 사용됩니다
+- 문제 파일의 `time_limit_milliseconds` 값은 모든 테스트 케이스를 실행하는 데 허용되는 총 시간입니다. 초과하면 남은 케이스는 실행하지 않고 `timeout` 상태가 반환됩니다.
 
 ### 응답
 채점은 비동기적으로 진행되며 HTTP 응답에는 `requestId`만 포함됩니다. 진행 상황과 최종 결과는 WebSocket을 통해 전송됩니다. 구체적인 WebSocket 스펙에 대해서는 아래를 참조하세요. 테스트 케이스가 하나라도 실패하면 남은 케이스는 실행하지 않고 즉시 최종 결과를 반환합니다.

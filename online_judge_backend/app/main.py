@@ -282,6 +282,7 @@ async def run_code_v3(req: CodeV3Request):
             "code": req.code,
             "stdins": stdins,
             "timeLimit": time_limit,
+            "wallTimeLimit": time_limit,
             "memoryLimit": memory_limit,
             "token": req.token,
             "expected": expected,

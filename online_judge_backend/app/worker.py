@@ -50,6 +50,7 @@ async def main() -> None:
                         expected=data.get("expected"),
                         early_stop=data.get("earlyStop", False),
                         progress_cb=progress_cb,
+                        wall_time_limit=data.get("wallTimeLimit"),
                     )
                     response = [r.model_dump() for r in results]
                     await channel.default_exchange.publish(
