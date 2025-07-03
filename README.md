@@ -7,7 +7,7 @@
 - Executes Python, Java, C, and C++ code
 - Returns **501 Not Implemented** for unsupported languages
 - The backend (in the `online_judge_backend` folder) exposes `/execute` for synchronous
-  runs and `/execute_v2`/`/execute_v3` for asynchronous processing. Jobs are delivered
+  runs and `/execute_v2`/`/execute_v3`/`/execute_v4` for asynchronous processing. Jobs are delivered
   to workers via RabbitMQ.
 - Workers can be started with the command `python -m online_judge_backend.app.worker`.
 - The frontend (in the `frontend` folder) is a demo web UI that utilizes the backend.
@@ -62,7 +62,8 @@ Then visit `http://localhost:8080`.
 The original `frontend/index.html` still uses the synchronous `/execute`
 endpoint. The `frontend/index_v2.html` page demonstrates the asynchronous API
 that streams progress over WebSockets. Problem-based judging can also be
-tested with `frontend/index_v3.html`, which calls the `/execute_v3` API. The
+tested with `frontend/index_v3.html`, which calls the `/execute_v3` API. A variant
+`/execute_v4` works the same but omits `stdout` and `stderr` from the results. The
 `/execute_v3` endpoint streams judging progress in the same way as
 `/execute_v2`. Because the client does not know the number of test cases in
 advance, each progress message now includes a `total` field so the progress bar
@@ -75,7 +76,7 @@ Problem definitions are normally loaded from an AWS S3 bucket. If the AWS
 environment variables are not set or the bucket is unreachable, the backend
 falls back to the JSON files in `online_judge_backend/static`. See
 `online_judge_backend/.env.example` for the variables that configure the S3
-bucket and prefix used by `/execute_v3`.
+bucket and prefix used by `/execute_v3` and `/execute_v4`.
 
 The frontend includes a field to specify the API URL. The default is `http://localhost:18651`, which points to the FastAPI backend. If specifying a different server, make sure CORS settings are configured properly. Additional origins can be added via the `CORS_ALLOW_ORIGINS` variable in the `.env` file (comma-separated).
 

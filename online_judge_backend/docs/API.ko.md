@@ -1,7 +1,7 @@
 # Online Judge Backend REST API 명세서
 
 이 문서는 온라인 저지 백엔드에서 제공하는 HTTP API를 설명합니다. 기본적인 동기식
-`/execute` 엔드포인트 외에도 v2 및 v3은 RabbitMQ 기반의 비동기식 API(`/execute_v2` + WebSocket 또는 `/execute_v3` + WebSocket)를 제공합니다. `frontend/index_v2.html` 및 `frontend/index_v3.html`가 이 비동기 방식을 사용한 데모입니다.
+`/execute` 엔드포인트 외에도 v2, v3, v4는 RabbitMQ 기반의 비동기식 API(`/execute_v2` + WebSocket 또는 `/execute_v3`/`/execute_v4` + WebSocket)를 제공합니다. `frontend/index_v2.html` 및 `frontend/index_v3.html`가 이 비동기 방식을 사용한 데모입니다.
 
 ## POST `/execute`
 
@@ -130,7 +130,7 @@ curl -X POST http://localhost:18651/execute \
 
 ## WebSocket `/ws/progress/{request_id}`
 
-채점 현황을 클라이언트가 실시간으로 관찰할 수 있도록 만든 WebSocket 엔드포인트입니다. `/execute_v2` 및 `/execute_v3` 요청 후 반환된 `requestId`를 사용해 연결합니다. 서버는 JSON 메시지를 스트리밍합니다.
+채점 현황을 클라이언트가 실시간으로 관찰할 수 있도록 만든 WebSocket 엔드포인트입니다. `/execute_v2`, `/execute_v3`, `/execute_v4` 요청 후 반환된 `requestId`를 사용해 연결합니다. 서버는 JSON 메시지를 스트리밍합니다.
 
 JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v3`을 보냈을 때가 살짝 다릅니다. 구체적으로는 아래와 같습니다.
 
@@ -161,6 +161,23 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
     "requestId":"c4b50694-c15c-4ce7-ab76-5e3754eebeb7",
     "stdout": "output goes here\n",
     "stderr": "error goes here\n",
+    "exitCode": 0,
+    "duration": 120,
+    "memoryUsed": 12288,
+    "timedOut": false,
+    "status": "success"
+  },
+  "total": 8
+}
+```
+### 진행 메시지 예시 (`/execute_v4`)
+`/execute_v4`는 `/execute_v3`와 동일하지만 `stdout`과 `stderr` 필드를 보내지 않습니다.
+```json
+{
+  "type": "progress",
+  "index": 0,
+  "result": {
+    "requestId": "c4b50694-c15c-4ce7-ab76-5e3754eebeb7",
     "exitCode": 0,
     "duration": 120,
     "memoryUsed": 12288,
@@ -238,6 +255,41 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
 }
 ```
 
+### 최종 메시지 예시 (`/execute_v4`)
+`/execute_v4`의 결과 예시는 다음과 같이 `stdout`과 `stderr`가 없습니다.
+```json
+{
+        "type": "final",
+        "problemId": "prob-004",
+        "allPassed": false,
+        "status": "timeout",
+        "results": [
+                {
+                        "id": 1,
+                        "visibility": "public",
+                        "passed": true,
+                        "status": "success",
+                        "expected": "14",
+                        "exitCode": 0,
+                        "duration": 13.35,
+                        "memoryUsed": 588,
+                        "timedOut": false
+                },
+                {
+                        "id": 2,
+                        "visibility": "hidden",
+                        "passed": false,
+                        "status": "timeout",
+                        "expected": "10",
+                        "exitCode": -9,
+                        "duration": 30001.0,
+                        "memoryUsed": 616,
+                        "timedOut": true
+                }
+        ],
+        "total": 8
+}
+```
 `type`이 `final`인 메시지를 받은 뒤에는 클라이언트가 WebSocket 연결을 종료하면 됩니다.
 
 ### 진행 상황 구독
@@ -247,5 +299,5 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
 3. 서버가 보내는 `progress` / `final` 메시지를 수신합니다.
 4. `final` 메시지를 받은 뒤 WebSocket을 닫습니다.
 
-각 `progress` 메시지에는 `index`와 `result`가 포함됩니다. `index`는 문제의 테스트 케이스 순서를 나타냅니다. 추가로, `POST /execute_v3`을 이용하였을 경우 `total` 값이 포함되어 전체 테스트 케이스 수를 알려줍니다. 이 `total` 값으로 유저가 채점 현황(%)을 보는 데에 사용할 수 있습니다. 이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.
-또한 `/execute_v3`의 진행 메시지 `result`에는 즉시 판별된 `status` 값이 포함됩니다.
+각 `progress` 메시지에는 `index`와 `result`가 포함됩니다. `index`는 문제의 테스트 케이스 순서를 나타냅니다. 추가로, `POST /execute_v3` 또는 `/execute_v4`을 이용하였을 경우 `total` 값이 포함되어 전체 테스트 케이스 수를 알려줍니다. 이 `total` 값으로 유저가 채점 현황(%)을 보는 데에 사용할 수 있습니다. 이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.
+또한 `/execute_v3`의 진행 메시지와 `/execute_v4`의 진행 메시지 `result`에는 즉시 판별된 `status` 값이 포함됩니다. `/execute_v4`에서는 `stdout`과 `stderr`가 제외됩니다.
