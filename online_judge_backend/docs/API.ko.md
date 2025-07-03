@@ -107,6 +107,7 @@ curl -X POST http://localhost:18651/execute \
 ```
 - `problemId`: 채점에 사용할 문제 ID(예: `prob-001`)
 - 다른 필드는 `/execute`와 동일하지만 `stdins`, `timeLimit`, `memoryLimit`는 무시되고 문제의 테스트 케이스가 사용됩니다
+- 문제 파일의 `time_limit_milliseconds` 값은 모든 테스트 케이스를 실행하는 데 허용되는 총 시간입니다. 초과하면 남은 케이스는 실행하지 않고 `timeout` 상태가 반환됩니다.
 
 ### 응답
 채점은 비동기적으로 진행되며 HTTP 응답에는 `requestId`만 포함됩니다. 진행 상황과 최종 결과는 WebSocket을 통해 전송됩니다. 구체적인 WebSocket 스펙에 대해서는 아래를 참조하세요. 테스트 케이스가 하나라도 실패하면 남은 케이스는 실행하지 않고 즉시 최종 결과를 반환합니다.
@@ -120,7 +121,12 @@ curl -X POST http://localhost:18651/execute \
 `requestId`는 `/ws/progress/{requestId}` WebSocket에 연결할 때 사용합니다. 서버는 각 테스트 케이스 결과를 순차적으로 전송하며 마지막 메시지에서 `type`이 `final`이면 채점이 완료된 것입니다.
 
 - `passed`가 `true`이면 해당 테스트 케이스를 통과한 것입니다.
+- `status`는 `success`, `compile_error`, `runtime_exception`, `wrong_output`, `timeout`, `failure`
+  중 하나로 채점 결과를 세분화한 값입니다. `success`일 때만 `passed`가 `true`입니다.
 - `allPassed`가 `true`이면 모든 테스트 케이스를 통과했음을 의미합니다.
+- `status` 필드는 `results` 배열의 마지막 요소의 `status` 값을 그대로 담아 채점
+  전체의 최종 상태를 나타냅니다.
+- `/execute_v3`의 경우 각 `progress` 메시지에서도 `result.status`가 포함됩니다.
 
 ## WebSocket `/ws/progress/{request_id}`
 
@@ -158,7 +164,8 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
     "exitCode": 0,
     "duration": 120,
     "memoryUsed": 12288,
-    "timedOut": false
+    "timedOut": false,
+    "status": "success"
   },
   "total": 8
 }
@@ -195,35 +202,38 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
 `"total": 8`은 전체 테스트 케이스의 개수입니다. 만약 채점 도중 특정 테스트케이스가 정답과 다를 경우 바로 중단되며 최종 메시지를 출력할 수 있습니다.
 ```json
 {
-	"type": "final",
-	"problemId": "prob-004",
-	"allPassed": false,
-	"results": [
-		{
-			"id": 1,
-			"visibility": "public",
-			"passed": true,
-			"expected": "14",
-			"stdout": "14\n",
-			"stderr": "",
-			"exitCode": 0,
-			"duration": 13.35,
-			"memoryUsed": 588,
-			"timedOut": false
-		},
-		{
-			"id": 2,
-			"visibility": "hidden",
-			"passed": false,
-			"expected": "10",
-			"stdout": "10\n",
-			"stderr": "",
-			"exitCode": 0,
-			"duration": 13.24,
-			"memoryUsed": 616,
-			"timedOut": false
-		}
-	],
+        "type": "final",
+        "problemId": "prob-004",
+        "allPassed": false,
+        "status": "timeout",
+        "results": [
+                {
+                        "id": 1,
+                        "visibility": "public",
+                        "passed": true,
+                        "status": "success",
+                        "expected": "14",
+                        "stdout": "14\n",
+                        "stderr": "",
+                        "exitCode": 0,
+                        "duration": 13.35,
+                        "memoryUsed": 588,
+                        "timedOut": false
+                },
+                {
+                        "id": 2,
+                        "visibility": "hidden",
+                        "passed": false,
+                        "status": "timeout",
+                        "expected": "10",
+                        "stdout": "",
+                        "stderr": "",
+                        "exitCode": -9,
+                        "duration": 30001.0,
+                        "memoryUsed": 616,
+                        "timedOut": true
+                }
+        ],
 	"total": 8
 }
 ```
@@ -238,3 +248,4 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
 4. `final` 메시지를 받은 뒤 WebSocket을 닫습니다.
 
 각 `progress` 메시지에는 `index`와 `result`가 포함됩니다. `index`는 문제의 테스트 케이스 순서를 나타냅니다. 추가로, `POST /execute_v3`을 이용하였을 경우 `total` 값이 포함되어 전체 테스트 케이스 수를 알려줍니다. 이 `total` 값으로 유저가 채점 현황(%)을 보는 데에 사용할 수 있습니다. 이 과정을 구현한 예시는 `frontend/index_v3.html`과 `frontend/app_v3.js`에서 확인할 수 있습니다.
+또한 `/execute_v3`의 진행 메시지 `result`에는 즉시 판별된 `status` 값이 포함됩니다.

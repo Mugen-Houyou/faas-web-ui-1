@@ -2,6 +2,7 @@ import os
 import json
 import asyncio
 from typing import List, Dict, Set
+from enum import Enum
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -24,6 +25,14 @@ AWS_REGION = os.getenv("AWS_REGION")
 AWS_PROBLEMS_BUCKET = os.getenv("AWS_PROBLEMS_BUCKET", "codeground-problems")
 AWS_PROBLEMS_BUCKET_PREFIX = os.getenv("AWS_PROBLEMS_BUCKET_PREFIX", "").strip("/")
 PROBLEMS_BUCKET_ENDPOINT = os.getenv("PROBLEMS_BUCKET_ENDPOINT")
+
+class ResultStatus(str, Enum):
+    SUCCESS = "success"
+    COMPILE_ERROR = "compile_error"
+    RUNTIME_EXCEPTION = "runtime_exception"
+    WRONG_OUTPUT = "wrong_output"
+    TIMEOUT = "timeout"
+    FAILURE = "failure"
 
 app = FastAPI()
 app.state.ws_connections: Dict[str, Set[WebSocket]] = {}
@@ -128,24 +137,65 @@ async def progress_consumer() -> None:
                     continue
                 data = json.loads(message.body)
                 if data.get("type") == "progress" and rid in app.state.v3_meta:
-                    data["total"] = app.state.v3_meta[rid]["total"]
+                    meta = app.state.v3_meta[rid]
+                    data["total"] = meta["total"]
+                    try:
+                        idx = int(data.get("index", -1))
+                        if 0 <= idx < len(meta["expected"]):
+                            exp = meta["expected"][idx]
+                            res = ExecutionResult(**data["result"])
+                            if res.exitCode == -1 and res.stderr:
+                                status = ResultStatus.COMPILE_ERROR
+                            elif res.timedOut:
+                                status = ResultStatus.TIMEOUT
+                            elif res.exitCode != 0:
+                                status = ResultStatus.RUNTIME_EXCEPTION
+                            elif (
+                                res.exitCode == 0
+                                and res.stderr == ""
+                                and res.stdout.strip() == str(exp).strip()
+                            ):
+                                status = ResultStatus.SUCCESS
+                            elif res.exitCode == 0 and res.stderr == "":
+                                status = ResultStatus.WRONG_OUTPUT
+                            else:
+                                status = ResultStatus.FAILURE
+                            data["result"]["status"] = status.value
+                    except Exception:
+                        pass
                 if data.get("type") == "final" and rid in app.state.v3_meta:
                     meta = app.state.v3_meta.pop(rid)
                     results = [ExecutionResult(**r) for r in data["results"]]
                     graded = []
                     all_passed = True
                     for m, exp, res in zip(meta["tc_meta"], meta["expected"], results):
-                        passed = (
+                        if res.exitCode == -1 and res.stderr:
+                            status = ResultStatus.COMPILE_ERROR
+                        elif res.timedOut:
+                            status = ResultStatus.TIMEOUT
+                        elif res.exitCode != 0:
+                            status = ResultStatus.RUNTIME_EXCEPTION
+                        elif (
                             res.exitCode == 0
-                            and not res.timedOut
                             and res.stderr == ""
                             and res.stdout.strip() == str(exp).strip()
-                        )
+                        ):
+                            status = ResultStatus.SUCCESS
+                        elif (
+                            res.exitCode == 0
+                            and res.stderr == ""
+                        ):
+                            status = ResultStatus.WRONG_OUTPUT
+                        else:
+                            status = ResultStatus.FAILURE
+
+                        passed = status is ResultStatus.SUCCESS
                         all_passed = all_passed and passed
                         graded.append({
                             "id": m["id"],
                             "visibility": m["visibility"],
                             "passed": passed,
+                            "status": status.value,
                             "expected": exp,
                             "stdout": res.stdout,
                             "stderr": res.stderr,
@@ -154,10 +204,12 @@ async def progress_consumer() -> None:
                             "memoryUsed": res.memoryUsed,
                             "timedOut": res.timedOut,
                         })
+                    final_status = graded[-1]["status"] if graded else ResultStatus.FAILURE.value
                     data = {
                         "type": "final",
                         "problemId": meta["problemId"],
                         "allPassed": all_passed,
+                        "status": final_status,
                         "results": graded,
                         "total": meta["total"],
                     }
@@ -260,6 +312,7 @@ async def run_code_v3(req: CodeV3Request):
             "code": req.code,
             "stdins": stdins,
             "timeLimit": time_limit,
+            "wallTimeLimit": time_limit,
             "memoryLimit": memory_limit,
             "token": req.token,
             "expected": expected,

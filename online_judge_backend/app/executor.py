@@ -222,6 +222,7 @@ async def execute_code_multiple(
     expected: Optional[list[str]] = None,
     early_stop: bool = False,
     progress_cb: Optional[Callable[[ExecutionResult, int], Awaitable[None]]] = None,
+    wall_time_limit: int | None = None,
 ) -> list[ExecutionResult]:
     """Compile once and run the code for each stdin in ``stdins``.
 
@@ -245,10 +246,31 @@ async def execute_code_multiple(
         return [err for _ in (stdins or [None])]
 
     results: list[ExecutionResult] = []
+    start = time.perf_counter()
     try:
         for idx, data in enumerate(stdins):
-            # time.sleep(1)
-            res = await run_code(lang, file_path, data, time_limit, memory_limit)
+            if wall_time_limit is not None:
+                elapsed = (time.perf_counter() - start) * 1000
+                remaining = wall_time_limit - elapsed
+                if remaining <= 0:
+                    res = ExecutionResult(
+                        requestId=str(uuid.uuid4()),
+                        stdout="",
+                        stderr="",
+                        exitCode=-9,
+                        duration=elapsed,
+                        memoryUsed=0,
+                        timedOut=True,
+                    )
+                    results.append(res)
+                    if progress_cb:
+                        await progress_cb(res, idx)
+                    break
+                case_limit = min(time_limit, int(remaining))
+            else:
+                case_limit = time_limit
+
+            res = await run_code(lang, file_path, data, case_limit, memory_limit)
             results.append(res)
             if progress_cb:
                 await progress_cb(res, idx)
@@ -260,6 +282,10 @@ async def execute_code_multiple(
                     and res.stdout.strip() == str(expected[idx]).strip()
                 )
                 if not passed:
+                    break
+            if wall_time_limit is not None:
+                elapsed = (time.perf_counter() - start) * 1000
+                if elapsed > wall_time_limit:
                     break
     finally:
         try:
