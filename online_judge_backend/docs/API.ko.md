@@ -121,7 +121,7 @@ curl -X POST http://localhost:18651/execute \
 `requestId`는 `/ws/progress/{requestId}` WebSocket에 연결할 때 사용합니다. 서버는 각 테스트 케이스 결과를 순차적으로 전송하며 마지막 메시지에서 `type`이 `final`이면 채점이 완료된 것입니다.
 
 - `passed`가 `true`이면 해당 테스트 케이스를 통과한 것입니다.
-- `status`는 `success`, `compile_error`, `runtime_exception`, `wrong_output`, `timeout`, `failure`
+- `status`는 `success`, `compile_error`, `syntax_error`, `runtime_exception`, `wrong_output`, `timeout`, `failure`
   중 하나로 채점 결과를 세분화한 값입니다. `success`일 때만 `passed`가 `true`입니다.
 - `allPassed`가 `true`이면 모든 테스트 케이스를 통과했음을 의미합니다.
 - `status` 필드는 `results` 배열의 마지막 요소의 `status` 값을 그대로 담아 채점

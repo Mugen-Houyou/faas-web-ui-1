@@ -43,7 +43,8 @@ class CodeV3Request(BaseModel):
 class ResultStatus(str, Enum):
     SUCCESS = "success"
     COMPILE_ERROR = "compile_error"
-    RUNTIME_EXCEPTION = "runtime_exception" # TODO: 지금은 런타임 예외뿐만 아니라 문법 오류도 포함, 추후 분리 필요
+    SYNTAX_ERROR = "syntax_error"
+    RUNTIME_EXCEPTION = "runtime_exception"
     WRONG_OUTPUT = "wrong_output"
     TIMEOUT = "timeout"
     FAILURE = "failure"
@@ -151,13 +152,15 @@ def _result_status(res: ExecutionResult, expected: str) -> ResultStatus:
         return ResultStatus.COMPILE_ERROR
     if res.timedOut:
         return ResultStatus.TIMEOUT
+    if "SyntaxError:" in res.stderr:
+        return ResultStatus.SYNTAX_ERROR
     if res.exitCode != 0:
         return ResultStatus.RUNTIME_EXCEPTION
     if res.exitCode == 0 and res.stderr == "" and res.stdout.strip() == str(expected).strip():
         return ResultStatus.SUCCESS
     if res.exitCode == 0 and res.stderr == "":
         return ResultStatus.WRONG_OUTPUT
-    if "Traceback (most recent call last): " in res.stderr or "SyntaxError: " in res.stderr:
+    if "Traceback (most recent call last): " in res.stderr:
         return ResultStatus.RUNTIME_EXCEPTION
     return ResultStatus.FAILURE
 

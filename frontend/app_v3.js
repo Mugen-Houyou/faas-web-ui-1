@@ -9,6 +9,7 @@ function displayRunResults(data) {
   const statusMap = {
     success: "PASS",
     compile_error: "COMPILE ERROR",
+    syntax_error: "SYNTAX ERROR",
     runtime_exception: "RUNTIME EXCEPTION",
     wrong_output: "WRONG OUTPUT",
     timeout: "TIMEOUT",
@@ -42,6 +43,7 @@ function displayGradedResults(data) {
     const statusMap = {
       success: "PASS",
       compile_error: "COMPILE ERROR",
+      syntax_error: "SYNTAX ERROR",
       runtime_exception: "RUNTIME EXCEPTION",
       wrong_output: "WRONG OUTPUT",
       timeout: "TIMEOUT",
