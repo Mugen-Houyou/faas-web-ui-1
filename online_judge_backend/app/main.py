@@ -146,6 +146,67 @@ async def _fetch_problem(problem_id: str) -> dict:
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to fetch problem")
 
+def _result_status(res: ExecutionResult, expected: str) -> ResultStatus:
+    if res.exitCode == -1 and res.stderr:
+        return ResultStatus.COMPILE_ERROR
+    if res.timedOut:
+        return ResultStatus.TIMEOUT
+    if res.exitCode != 0:
+        return ResultStatus.RUNTIME_EXCEPTION
+    if res.exitCode == 0 and res.stderr == "" and res.stdout.strip() == str(expected).strip():
+        return ResultStatus.SUCCESS
+    if res.exitCode == 0 and res.stderr == "":
+        return ResultStatus.WRONG_OUTPUT
+    if "Traceback (most recent call last): " in res.stderr or "SyntaxError: " in res.stderr:
+        return ResultStatus.RUNTIME_EXCEPTION
+    return ResultStatus.FAILURE
+
+
+def _apply_progress(data: dict, meta: dict) -> dict:
+    data["total"] = meta["total"]
+    try:
+        idx = int(data.get("index", -1))
+        if 0 <= idx < len(meta["expected"]):
+            exp = meta["expected"][idx]
+            res = ExecutionResult(**data["result"])
+            data["result"]["status"] = _result_status(res, exp).value
+    except Exception:
+        pass
+    return data
+
+
+def _prepare_final(meta: dict, results: List[ExecutionResult]) -> dict:
+    graded = []
+    all_passed = True
+    for m, exp, res in zip(meta["tc_meta"], meta["expected"], results):
+        status = _result_status(res, exp)
+        passed = status is ResultStatus.SUCCESS
+        all_passed = all_passed and passed
+        graded.append({
+            "id": m["id"],
+            "visibility": m["visibility"],
+            "passed": passed,
+            "status": status.value,
+            "expected": exp,
+            "stdout": res.stdout,
+            "stderr": res.stderr,
+            "exitCode": res.exitCode,
+            "duration": res.duration,
+            "memoryUsed": res.memoryUsed,
+            "timedOut": res.timedOut,
+        })
+
+    final_status = graded[-1]["status"] if graded else ResultStatus.FAILURE.value
+    return {
+        "type": "final",
+        "problemId": meta["problemId"],
+        "allPassed": all_passed,
+        "status": final_status,
+        "results": graded,
+        "total": meta["total"],
+    }
+
+
 async def progress_consumer() -> None:
     queue = app.state.progress_queue
     async with queue.iterator() as it:
@@ -157,84 +218,11 @@ async def progress_consumer() -> None:
                 data = json.loads(message.body)
                 if data.get("type") == "progress" and rid in app.state.v3_meta:
                     meta = app.state.v3_meta[rid]
-                    data["total"] = meta["total"]
-                    try:
-                        idx = int(data.get("index", -1))
-                        if 0 <= idx < len(meta["expected"]):
-                            exp = meta["expected"][idx]
-                            res = ExecutionResult(**data["result"])
-                            if res.exitCode == -1 and res.stderr:
-                                status = ResultStatus.COMPILE_ERROR
-                            elif res.timedOut:
-                                status = ResultStatus.TIMEOUT
-                            elif res.exitCode != 0:
-                                status = ResultStatus.RUNTIME_EXCEPTION
-                            elif (
-                                res.exitCode == 0
-                                and res.stderr == ""
-                                and res.stdout.strip() == str(exp).strip()
-                            ):
-                                status = ResultStatus.SUCCESS
-                            elif res.exitCode == 0 and res.stderr == "":
-                                status = ResultStatus.WRONG_OUTPUT
-                            else:
-                                if "Traceback (most recent call last): " in res.stderr or "SyntaxError: " in res.stderr:
-                                    status = ResultStatus.RUNTIME_EXCEPTION
-                                else:
-                                    status = ResultStatus.FAILURE
-                            data["result"]["status"] = status.value
-                    except Exception:
-                        pass
+                    data = _apply_progress(data, meta)
                 if data.get("type") == "final" and rid in app.state.v3_meta:
                     meta = app.state.v3_meta.pop(rid)
                     results = [ExecutionResult(**r) for r in data["results"]]
-                    graded = []
-                    all_passed = True
-                    for m, exp, res in zip(meta["tc_meta"], meta["expected"], results):
-                        if res.exitCode == -1 and res.stderr:
-                            status = ResultStatus.COMPILE_ERROR
-                        elif res.timedOut:
-                            status = ResultStatus.TIMEOUT
-                        elif res.exitCode != 0:
-                            status = ResultStatus.RUNTIME_EXCEPTION
-                        elif (
-                            res.exitCode == 0
-                            and res.stderr == ""
-                            and res.stdout.strip() == str(exp).strip()
-                        ):
-                            status = ResultStatus.SUCCESS
-                        elif (
-                            res.exitCode == 0
-                            and res.stderr == ""
-                        ):
-                            status = ResultStatus.WRONG_OUTPUT
-                        else:
-                            status = ResultStatus.FAILURE
-
-                        passed = status is ResultStatus.SUCCESS
-                        all_passed = all_passed and passed
-                        graded.append({
-                            "id": m["id"],
-                            "visibility": m["visibility"],
-                            "passed": passed,
-                            "status": status.value,
-                            "expected": exp,
-                            "stdout": res.stdout,
-                            "stderr": res.stderr,
-                            "exitCode": res.exitCode,
-                            "duration": res.duration,
-                            "memoryUsed": res.memoryUsed,
-                            "timedOut": res.timedOut,
-                        })
-                    final_status = graded[-1]["status"] if graded else ResultStatus.FAILURE.value
-                    data = {
-                        "type": "final",
-                        "problemId": meta["problemId"],
-                        "allPassed": all_passed,
-                        "status": final_status,
-                        "results": graded,
-                        "total": meta["total"],
-                    }
+                    data = _prepare_final(meta, results)
 
                 conns = app.state.ws_connections.get(rid)
                 if conns:
