@@ -167,37 +167,47 @@ def _result_status(res: ExecutionResult, expected: str) -> ResultStatus:
 
 def _apply_progress(data: dict, meta: dict) -> dict:
     data["total"] = meta["total"]
+    hide_output = meta.get("hide_output", False)
     try:
         idx = int(data.get("index", -1))
         if 0 <= idx < len(meta["expected"]):
             exp = meta["expected"][idx]
             res = ExecutionResult(**data["result"])
             data["result"]["status"] = _result_status(res, exp).value
+            if hide_output:
+                data["result"].pop("stdout", None)
+                data["result"].pop("stderr", None)
     except Exception:
         pass
+    if hide_output:
+        data["result"].pop("stdout", None)
+        data["result"].pop("stderr", None)
     return data
 
 
 def _prepare_final(meta: dict, results: List[ExecutionResult]) -> dict:
+    hide_output = meta.get("hide_output", False)
     graded = []
     all_passed = True
     for m, exp, res in zip(meta["tc_meta"], meta["expected"], results):
         status = _result_status(res, exp)
         passed = status is ResultStatus.SUCCESS
         all_passed = all_passed and passed
-        graded.append({
+        entry = {
             "id": m["id"],
             "visibility": m["visibility"],
             "passed": passed,
             "status": status.value,
             "expected": exp,
-            "stdout": res.stdout,
-            "stderr": res.stderr,
             "exitCode": res.exitCode,
             "duration": res.duration,
             "memoryUsed": res.memoryUsed,
             "timedOut": res.timedOut,
-        })
+        }
+        if not hide_output:
+            entry["stdout"] = res.stdout
+            entry["stderr"] = res.stderr
+        graded.append(entry)
 
     final_status = graded[-1]["status"] if graded else ResultStatus.FAILURE.value
     return {
@@ -322,6 +332,58 @@ async def run_code_v3(req: CodeV3Request):
             "tc_meta": tc_meta,
             "problemId": req.problemId,
             "total": len(stdins),
+        }
+
+        return {"requestId": request_id}
+
+    except HTTPException:
+        raise
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# 새 엔드포인트: /execute_v4
+# /execute_v3와 동일하지만 stdout/stderr를 클라이언트에게 전달하지 않는다.
+@app.post("/execute_v4")
+async def run_code_v4(req: CodeV3Request):
+    try:
+        problem = await _fetch_problem(req.problemId)
+
+        if req.language.value not in problem.get("languages", []):
+            raise HTTPException(status_code=400, detail="Language not allowed")
+
+        time_limit = int(problem.get("time_limit_milliseconds", 30000))
+        mem_kb = int(problem.get("memory_limit_kilobytes", 262144))
+        memory_limit = mem_kb // 1024
+
+        stdins = [tc.get("input", "") for tc in problem.get("test_cases", [])]
+        expected = [tc.get("output", "") for tc in problem.get("test_cases", [])]
+        tc_meta = [
+            {"id": tc.get("id"), "visibility": tc.get("visibility", "public")}
+            for tc in problem.get("test_cases", [])
+        ]
+
+        payload = {
+            "language": req.language,
+            "code": req.code,
+            "stdins": stdins,
+            "timeLimit": time_limit,
+            "wallTimeLimit": time_limit,
+            "memoryLimit": memory_limit,
+            "token": req.token,
+            "expected": expected,
+            "earlyStop": True,
+        }
+
+        request_id = await app.state.rpc.send(payload)
+        app.state.v3_meta[request_id] = {
+            "expected": expected,
+            "tc_meta": tc_meta,
+            "problemId": req.problemId,
+            "total": len(stdins),
+            "hide_output": True,
         }
 
         return {"requestId": request_id}

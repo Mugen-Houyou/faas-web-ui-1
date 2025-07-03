@@ -5,6 +5,7 @@ This document describes the HTTP API provided by the backend. There are three ma
 - `POST /execute` &ndash; run code synchronously.
 - `POST /execute_v2` &ndash; run code asynchronously and stream progress through WebSockets.
 - `POST /execute_v3` &ndash; grade code against predefined problems. Progress is streamed as with `/execute_v2`.
+- `POST /execute_v4` &ndash; same as `/execute_v3` but omits `stdout` and `stderr` from responses.
 
 For websocket updates, connect to `/ws/progress/{requestId}` using the `requestId` returned by the `v2` or `v3` endpoints.
 
@@ -33,3 +34,8 @@ The HTTP response contains only a `requestId`. WebSocket messages include `progr
 Please refer to the `API.ko.md` for the specific JSON format.
 
 Each `progress` message contains `index`, `result` and `total` fields so the client can update progress bars.
+
+## POST `/execute_v4`
+
+Identical to `/execute_v3` but `stdout` and `stderr` fields are removed from
+the progress and final messages for security reasons.
