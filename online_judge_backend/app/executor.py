@@ -162,6 +162,10 @@ async def run_code(
     exit_code = process.returncode if process.returncode is not None else -1
     peak_rss = await mem_task
 
+    print(f"Execution finished: {lang} {file_path} " )
+        #   f"Exit code: {exit_code}, Duration: {duration:.2f} ms, "
+        #   f"Memory used: {peak_rss / 1024:.2f} MB, Timed out: {timed_out}")
+    
     return ExecutionResult(
         requestId=str(uuid.uuid4()),
         stdout=stdout.decode(),
@@ -231,6 +235,7 @@ async def execute_code_multiple(
     """
     try:
         file_path = await compile_code(lang, code, token)
+        print(f"Compiled code for {lang} to {file_path}")
     except NotImplementedError:
         raise
     except Exception as e:

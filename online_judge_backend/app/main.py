@@ -26,10 +26,24 @@ AWS_PROBLEMS_BUCKET = os.getenv("AWS_PROBLEMS_BUCKET", "codeground-problems")
 AWS_PROBLEMS_BUCKET_PREFIX = os.getenv("AWS_PROBLEMS_BUCKET_PREFIX", "").strip("/")
 PROBLEMS_BUCKET_ENDPOINT = os.getenv("PROBLEMS_BUCKET_ENDPOINT")
 
+class CodeRequest(BaseModel):
+    language: SupportedLanguage
+    code: str
+    stdins: List[str] = []
+    timeLimit: int = 30000
+    memoryLimit: int = 256
+    token: str | None = None
+
+class CodeV3Request(BaseModel):
+    language: SupportedLanguage
+    code: str
+    problemId: str
+    token: str | None = None
+
 class ResultStatus(str, Enum):
     SUCCESS = "success"
     COMPILE_ERROR = "compile_error"
-    RUNTIME_EXCEPTION = "runtime_exception"
+    RUNTIME_EXCEPTION = "runtime_exception" # TODO: 지금은 런타임 예외뿐만 아니라 문법 오류도 포함, 추후 분리 필요
     WRONG_OUTPUT = "wrong_output"
     TIMEOUT = "timeout"
     FAILURE = "failure"
@@ -40,7 +54,7 @@ app.state.progress_queue = None
 app.state.v3_meta: Dict[str, dict] = {}
 
 # CORS 설정
-# 기본 오리진 목록을 환경 변수로 확장할 수 있다.
+# 기본 오리진 목록을 `.env`의 `CORS_ALLOW_ORIGINS`로 확장할 수 있다.
 origins = [
     "http://localhost",
     "http://localhost:3000",
@@ -60,14 +74,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-class CodeRequest(BaseModel):
-    language: SupportedLanguage
-    code: str
-    stdins: List[str] = []
-    timeLimit: int = 30000
-    memoryLimit: int = 256
-    token: str | None = None
 
 
 @app.on_event("startup")
@@ -102,30 +108,43 @@ async def startup() -> None:
 async def shutdown() -> None:
     await app.state.rpc.close()
 
-@app.post("/execute", response_model=list[ExecutionResult])
-async def run_code(req: CodeRequest):
+
+async def _fetch_problem(problem_id: str) -> dict:
+    """Load a problem definition from S3 if possible, otherwise from local files."""
+    key = f"{app.state.problems_prefix}{problem_id}.json"
+    if app.state.s3_session:
+        print("app.state.s3_session=True, Attempting to fetch problem %s from AWS S3", problem_id)
+        try:
+            async with app.state.s3_session.client(
+                "s3",
+                region_name=app.state.aws_region,
+                endpoint_url=app.state.problems_endpoint,
+            ) as s3:
+                obj = await s3.get_object(
+                    Bucket=app.state.problems_bucket,
+                    Key=key,
+                )
+                body = await obj["Body"].read()
+                print(f"Fetching problem {problem_id} from AWS S3")
+                return json.loads(body)
+        except ClientError as e:
+            if e.response.get("Error", {}).get("Code") == "NoSuchKey":
+                raise HTTPException(status_code=404, detail="Problem not found")
+            # Any other error will fall back to local files
+            print(f"ClientError details: {e}")
+        except Exception as ex:
+            print(f"Exception details: {ex}")
+
+    # Fallback to local files
+    print(f"app.state.s3_session=False, Fetching problem {problem_id} from local files")
+    path = app.state.problems_local_dir / key
     try:
-        payload = req.dict()
-        raw_results = await app.state.rpc.call(payload)
-        results = [ExecutionResult(**r) for r in raw_results]
-        return results
-    except NotImplementedError as e:
-        raise HTTPException(status_code=501, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
-@app.post("/execute_v2")
-async def run_code_v2(req: CodeRequest):
-    try:
-        payload = req.dict()
-        request_id = await app.state.rpc.send(payload)
-        return {"requestId": request_id}
-    except NotImplementedError as e:
-        raise HTTPException(status_code=501, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to fetch problem")
 
 async def progress_consumer() -> None:
     queue = app.state.progress_queue
@@ -159,7 +178,10 @@ async def progress_consumer() -> None:
                             elif res.exitCode == 0 and res.stderr == "":
                                 status = ResultStatus.WRONG_OUTPUT
                             else:
-                                status = ResultStatus.FAILURE
+                                if "Traceback (most recent call last): " in res.stderr or "SyntaxError: " in res.stderr:
+                                    status = ResultStatus.RUNTIME_EXCEPTION
+                                else:
+                                    status = ResultStatus.FAILURE
                             data["result"]["status"] = status.value
                     except Exception:
                         pass
@@ -227,6 +249,34 @@ async def progress_consumer() -> None:
                         app.state.ws_connections.pop(rid, None)
 
 
+# 이 함수는 debug용으로, 프로덕션에서는 사용하지 않습니다.
+# 실제로는 `/execute_v3`를 사용하여 비동기적으로 실행하고 WebSocket을 통해 결과를 받도록 하세요.
+@app.post("/execute", response_model=list[ExecutionResult])
+async def run_code(req: CodeRequest):
+    try:
+        payload = req.dict()
+        raw_results = await app.state.rpc.call(payload)
+        results = [ExecutionResult(**r) for r in raw_results]
+        return results
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# 이 함수는 deprecated로, 프로덕션에서는 사용하지 않습니다.
+# 실제로는 `/execute_v3`를 사용 및 WebSocket을 통해 결과를 받도록 하세요.
+@app.post("/execute_v2")
+async def run_code_v2(req: CodeRequest):
+    try:
+        payload = req.dict()
+        request_id = await app.state.rpc.send(payload)
+        return {"requestId": request_id}
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
 @app.websocket("/ws/progress/{request_id}")
 async def ws_progress(websocket: WebSocket, request_id: str):
     await websocket.accept()
@@ -243,51 +293,7 @@ async def ws_progress(websocket: WebSocket, request_id: str):
             app.state.ws_connections.pop(request_id, None)
 
 
-class CodeV3Request(BaseModel):
-    language: SupportedLanguage
-    code: str
-    problemId: str
-    token: str | None = None
-
-
-async def _fetch_problem(problem_id: str) -> dict:
-    """Load a problem definition from S3 if possible, otherwise from local files."""
-    key = f"{app.state.problems_prefix}{problem_id}.json"
-    if app.state.s3_session:
-        print("app.state.s3_session=True, Attempting to fetch problem %s from AWS S3", problem_id)
-        try:
-            async with app.state.s3_session.client(
-                "s3",
-                region_name=app.state.aws_region,
-                endpoint_url=app.state.problems_endpoint,
-            ) as s3:
-                obj = await s3.get_object(
-                    Bucket=app.state.problems_bucket,
-                    Key=key,
-                )
-                body = await obj["Body"].read()
-                print(f"Fetching problem {problem_id} from AWS S3")
-                return json.loads(body)
-        except ClientError as e:
-            if e.response.get("Error", {}).get("Code") == "NoSuchKey":
-                raise HTTPException(status_code=404, detail="Problem not found")
-            # Any other error will fall back to local files
-            print(f"ClientError details: {e}")
-        except Exception as ex:
-            print(f"Exception details: {ex}")
-
-
-    # Fallback to local files
-    print(f"app.state.s3_session=False, Fetching problem {problem_id} from local files")
-    path = app.state.problems_local_dir / key
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Problem not found")
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to fetch problem")
-
+# 이 함수는 비동기적으로 문제를 실행하고 클라이언트에게 WebSocket을 통해 결과를 받도록 합니다.
 @app.post("/execute_v3")
 async def run_code_v3(req: CodeV3Request):
     try:

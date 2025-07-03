@@ -16,16 +16,20 @@ from .executor import execute_code_multiple, SupportedLanguage
 
 async def main() -> None:
     url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
+    print(f"Connecting to RabbitMQ at {url} ...")
     connection = await aio_pika.connect_robust(url)
     channel = await connection.channel()
     queue = await channel.declare_queue("execute", durable=True)
 
+    print("Connected to RabbitMQ. Waiting for messages...")
     async with queue.iterator() as queue_iter:
         async for message in queue_iter:
             async with message.process():
+                data = None
                 try:
                     data = json.loads(message.body)
 
+                    print(f"Received message: {data}")
                     async def progress_cb(res, idx):
                         await channel.default_exchange.publish(
                             aio_pika.Message(
@@ -81,6 +85,7 @@ async def main() -> None:
                     ),
                     routing_key=message.reply_to,
                 )
+                print(f"Processed message: {data}")
 
 
 if __name__ == "__main__":
