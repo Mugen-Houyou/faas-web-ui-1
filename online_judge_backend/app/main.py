@@ -352,7 +352,7 @@ async def run_code_v3(req: CodeV3Request, request: Request):
 
 
 # 새 엔드포인트: /execute_v4
-# /execute_v3와 동일하지만 stdout/stderr를 클라이언트에게 전달하지 않는다.
+# /execute_v3와 동일하나 stdout/stderr를 클라이언트에게 전달하지 않는다.
 @app.post("/execute_v4")
 async def run_code_v4(req: CodeV3Request):
     try:
@@ -370,6 +370,62 @@ async def run_code_v4(req: CodeV3Request):
         tc_meta = [
             {"id": tc.get("id"), "visibility": tc.get("visibility", "public")}
             for tc in problem.get("test_cases", [])
+        ]
+
+        payload = {
+            "language": req.language,
+            "code": req.code,
+            "stdins": stdins,
+            "timeLimit": time_limit,
+            "wallTimeLimit": time_limit,
+            "memoryLimit": memory_limit,
+            "token": req.token,
+            "expected": expected,
+            "earlyStop": True,
+        }
+
+        request_id = await app.state.rpc.send(payload)
+        app.state.v3_meta[request_id] = {
+            "expected": expected,
+            "tc_meta": tc_meta,
+            "problemId": req.problemId,
+            "total": len(stdins),
+            "hide_output": True,
+        }
+
+        return {"requestId": request_id}
+
+    except HTTPException:
+        raise
+    except NotImplementedError as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+
+# 새 엔드포인트: /execute_v4_public
+# /execute_v4와 동일하나 공개 테스트케이스만 실행한다.
+@app.post("/execute_v4_public")
+async def run_code_v4_public(req: CodeV3Request):
+    try:
+        problem = await _fetch_problem(req.problemId)
+
+        if req.language.value not in problem.get("languages", []):
+            raise HTTPException(status_code=400, detail="Language not allowed")
+
+        time_limit = int(problem.get("time_limit_milliseconds", 30000))
+        mem_kb = int(problem.get("memory_limit_kilobytes", 262144))
+        memory_limit = mem_kb // 1024
+
+        cases = [       # 필터링된 공개 테스트케이스만 가져오기
+            tc for tc in problem.get("test_cases", [])
+            if tc.get("visibility", "public") == "public"
+        ]
+        stdins = [tc.get("input", "") for tc in cases]
+        expected = [tc.get("output", "") for tc in cases]
+        tc_meta = [
+            {"id": tc.get("id"), "visibility": tc.get("visibility", "public")}
+            for tc in cases
         ]
 
         payload = {
