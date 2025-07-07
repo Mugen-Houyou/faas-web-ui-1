@@ -1,7 +1,7 @@
 # Online Judge Backend REST API 명세서
 
 이 문서는 온라인 저지 백엔드에서 제공하는 HTTP API를 설명합니다. 기본적인 동기식
-`/execute` 엔드포인트 외에도 v2, v3, v4는 RabbitMQ 기반의 비동기식 API(`/execute_v2` + WebSocket 또는 `/execute_v3`/`/execute_v4` + WebSocket)를 제공합니다. `frontend/index_v2.html` 및 `frontend/index_v3.html`가 이 비동기 방식을 사용한 데모입니다.
+`/execute` 엔드포인트 외에도 v2, v3, v4는 RabbitMQ 기반의 비동기식 API(`/execute_v2` + WebSocket 또는 `/execute_v3`/`/execute_v4`/`/execute_v4_public` + WebSocket)를 제공합니다. `frontend/index_v2.html` 및 `frontend/index_v3.html`가 이 비동기 방식을 사용한 데모입니다.
 
 ## POST `/execute`
 
@@ -172,6 +172,7 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
 ```
 ### 진행 메시지 예시 (`/execute_v4`)
 `/execute_v4`는 `/execute_v3`와 동일하지만 `stdout`과 `stderr` 필드를 보내지 않습니다.
+`/execute_v4_public`은 공개 테스트케이스만 실행한다는 점을 제외하면 `/execute_v4`와 동일합니다.
 ```json
 {
   "type": "progress",
@@ -257,6 +258,7 @@ JSON 메시지 스트림 형식은 `/execute_v2`를 보냈을 때와 `/execute_v
 
 ### 최종 메시지 예시 (`/execute_v4`)
 `/execute_v4`의 결과 예시는 다음과 같이 `stdout`과 `stderr`가 없습니다.
+`/execute_v4_public`의 최종 메시지 형식도 동일하며 공개 테스트케이스만 포함됩니다.
 ```json
 {
         "type": "final",

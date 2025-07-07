@@ -133,3 +133,35 @@ document.getElementById("run").addEventListener("click", async () => {
 
   watchProgress(data.requestId);
 });
+
+document.getElementById("runPublic").addEventListener("click", async () => {
+  const lang = document.getElementById("lang").value;
+  const code = document.getElementById("code").value;
+  const problemId = document.getElementById("problemId").value.trim();
+  const token = document.getElementById("token").value.trim();
+
+  document.getElementById("stdout").textContent = "실행 중...";
+  document.getElementById("stderr").textContent = "";
+  document.getElementById("judgeMessage").textContent = "";
+  document.getElementById("metrics").textContent = "";
+  totalRuns = 1;
+  updateProgress(0);
+
+  const body = { language: lang, code, problemId, token: token || null };
+
+  const res = await fetch(`${getBaseUrl()}/execute_v4_public`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+
+  if (!res.ok) {
+    document.getElementById("stderr").textContent = data.error || data.detail ||
+      "Error";
+    document.getElementById("stdout").textContent = "";
+    return;
+  }
+
+  watchProgress(data.requestId);
+});

@@ -6,6 +6,7 @@ This document describes the HTTP API provided by the backend. There are three ma
 - `POST /execute_v2` &ndash; run code asynchronously and stream progress through WebSockets.
 - `POST /execute_v3` &ndash; grade code against predefined problems. Progress is streamed as with `/execute_v2`.
 - `POST /execute_v4` &ndash; same as `/execute_v3` but omits `stdout` and `stderr` from responses.
+- `POST /execute_v4_public` &ndash; identical to `/execute_v4` but only runs public test cases.
 
 For websocket updates, connect to `/ws/progress/{requestId}` using the `requestId` returned by the `v2` or `v3` endpoints.
 
@@ -39,3 +40,7 @@ Each `progress` message contains `index`, `result` and `total` fields so the cli
 
 Identical to `/execute_v3` but `stdout` and `stderr` fields are removed from
 the progress and final messages for security reasons.
+
+## POST `/execute_v4_public`
+
+Same as `/execute_v4` but only public test cases are executed.

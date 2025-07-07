@@ -62,7 +62,7 @@ python -m http.server 8080
 기존 `frontend/index.html`은 여전히 동기식 `/execute` 엔드포인트를 사용합
 니다. `frontend/index_v2.html` 페이지에서는 WebSocket으로 진행 상황을 받
 아오는 비동기 API 동작을 확인할 수 있습니다. 문제 기반 채점은
-`frontend/index_v3.html` 페이지에서 `/execute_v3` API를 통해 확인할 수 있으며, `/execute_v3` 역시 `/execute_v2`와 마찬가지로 진행 상황을 WebSocket으로 전송합니다. `/execute_v4`는 동일하지만 `stdout`과 `stderr`를 클라이언트에 보내지 않습니다.
+`frontend/index_v3.html` 페이지에서 `/execute_v3` API를 통해 확인할 수 있으며, `/execute_v3` 역시 `/execute_v2`와 마찬가지로 진행 상황을 WebSocket으로 전송합니다. `/execute_v4`는 동일하지만 `stdout`과 `stderr`를 클라이언트에 보내지 않습니다. `/execute_v4_public`은 공개 테스트케이스만 실행합니다.
 
 클라이언트는 테스트 케이스 수를 미리 알 수 없으므로 각 `progress` 메시지에는 전체 개수를 나타내는 `total` 값이 포함됩니다. 테스트 케이스가 하나라도 실패하면 남은 케이스는 실행하지 않고 즉시 결과가 전송됩니다. `/execute_v3`의 HTTP 응답에는 `requestId`만 포함되며 최종 채점 결과는 WebSocket 메시지로 전달됩니다.
 
