@@ -23,7 +23,7 @@ from .executor import execute_code_multiple, SupportedLanguage
 
 
 async def main() -> None:
-    start_http_server(8001)
+    start_http_server(28001)
     url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
     logger.info("Connecting to RabbitMQ at %s ...", url)
     connection = await aio_pika.connect_robust(url)
