@@ -84,5 +84,10 @@ AWS ECR/ECS Fargate에 이미지를 배포하고 환경 변수를 설정하는 �
 [online_judge_backend/docs/AWS_Deploy.ko.md](online_judge_backend/docs/AWS_Deploy.ko.md)
 문서를 참고하세요.
 
+## 모니터링과 메트릭
+백엔드와 워커에서 노출되는 Prometheus 메트릭 설정 방법은
+[online_judge_backend/docs/Observability.ko.md](online_judge_backend/docs/Observability.ko.md)
+문서에서 확인할 수 있습니다.
+
 ## 라이선스
 이 저장소에는 별도의 라이선스 파일이 포함되어 있지 않습니다.
