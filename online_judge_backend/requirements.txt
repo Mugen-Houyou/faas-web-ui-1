@@ -5,3 +5,4 @@ python-dotenv
 psutil
 aio_pika
 aioboto3
+prometheus-client

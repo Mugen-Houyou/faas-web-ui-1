@@ -5,6 +5,8 @@ from typing import List, Dict, Set
 from enum import Enum
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
+
+from .logging_middleware import LoggingMiddleware, metrics_app
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pathlib import Path
@@ -51,6 +53,8 @@ class ResultStatus(str, Enum):
     FAILURE = "failure"
 
 app = FastAPI()
+app.add_middleware(LoggingMiddleware)
+app.mount("/metrics", metrics_app)
 app.state.ws_connections: Dict[str, Set[WebSocket]] = {}
 app.state.progress_queue = None
 app.state.v3_meta: Dict[str, dict] = {}
