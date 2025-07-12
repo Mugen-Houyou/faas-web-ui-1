@@ -117,9 +117,10 @@ async def shutdown() -> None:
 
 async def _fetch_problem(problem_id: str) -> dict:
     """Load a problem definition from S3 if possible, otherwise from local files."""
-    key = f"{app.state.problems_prefix}{problem_id}.json"
+    # key = f"{app.state.problems_prefix}{problem_id}.json"
+    key = f"{app.state.problems_prefix}{problem_id}"
     if app.state.s3_session:
-        print("app.state.s3_session=True, Attempting to fetch problem %s from AWS S3", problem_id)
+        print(f"app.state.s3_session=True, Attempting to fetch problem {key} from AWS S3" )
         try:
             async with app.state.s3_session.client(
                 "s3",
