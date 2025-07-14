@@ -257,6 +257,8 @@ async def execute_code_multiple(
         return [err for _ in (stdins or [None])]
 
     results: list[ExecutionResult] = []
+
+    # 여기서부터 실행 타이머 시작!
     start = time.perf_counter()
     try:
         for idx, data in enumerate(stdins):
@@ -294,6 +296,8 @@ async def execute_code_multiple(
                 )
                 if not passed:
                     break
+
+            # Wall time limit 체크
             if wall_time_limit is not None:
                 elapsed = (time.perf_counter() - start) * 1000
                 if elapsed > wall_time_limit:
