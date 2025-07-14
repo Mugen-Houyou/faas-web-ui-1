@@ -5,23 +5,22 @@ import time
 from pathlib import Path
 from dotenv import load_dotenv
 import aio_pika
-import logging
+from .logging_middleware_worker import (
+    logger,
+    start_metrics_server,
+    JOB_COUNT,
+    JOB_DURATION,
+)
 
 # Load ../.env relative to this file so it works regardless of cwd
 env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(dotenv_path=env_path, override=True)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
-logger = logging.getLogger("worker")
-
 from .executor import execute_code_multiple, SupportedLanguage
 
 
 async def main() -> None:
+    start_metrics_server()
     url = os.getenv("RABBITMQ_URL", "amqp://guest:guest@localhost/")
     logger.info("Connecting to RabbitMQ at %s ...", url)
     connection = await aio_pika.connect_robust(url)
@@ -77,6 +76,7 @@ async def main() -> None:
                         routing_key="progress",
                     )
 
+                    JOB_COUNT.labels(result="success").inc()
                     logger.info("Job succeeded, results count: %d", len(results))
 
                 except Exception as e:
@@ -92,6 +92,7 @@ async def main() -> None:
                         ),
                         routing_key="progress",
                     )
+                    JOB_COUNT.labels(result="error").inc()
                     logger.error("Job failed: %s", e, exc_info=True)
 
                 # reply queue로도 결과 전송
@@ -104,6 +105,7 @@ async def main() -> None:
                 )
 
                 duration = time.perf_counter() - start_time
+                JOB_DURATION.observe(duration)
                 logger.info("Processed message in %.3f seconds", duration)
 
 
