@@ -57,16 +57,23 @@ async def main() -> None:
                         lang=SupportedLanguage(data["language"]),
                         code=data["code"],
                         stdins=data.get("stdins", []),
-                        time_limit=data.get("timeLimit", 30000),
+                        time_limit=int(data.get("timeLimit", 30000)*1.2),
                         memory_limit=data.get("memoryLimit", 256),
                         token=data.get("token"),
                         expected=data.get("expected"),
                         early_stop=data.get("earlyStop", False),
                         progress_cb=progress_cb,
-                        wall_time_limit=data.get("wallTimeLimit"),
+                        wall_time_limit=int(data.get("wallTimeLimit")*1.2),
                     )
 
+                    # 결과 처리
                     response = [r.model_dump() for r in results]
+
+                    # 전체 테스트케이스를 다 돌았더라도, duration의 합산으로 time limit 초과 여부를 체크
+                    durationTotal = sum(r.duration for r in results)
+                    if durationTotal > data.get('timeLimit'):
+                        response[-1]["timedOut"] = True
+
                     # 최종 결과 발행
                     await channel.default_exchange.publish(
                         aio_pika.Message(

@@ -107,7 +107,6 @@ async def run_code(
     memory_limit: int,
 ) -> ExecutionResult:
     """Run previously compiled code and return the execution result."""
-
     if lang is SupportedLanguage.python:
         cmd = ["python3", str(file_path)]
     elif lang in (SupportedLanguage.c, SupportedLanguage.cpp):
@@ -234,11 +233,15 @@ async def execute_code_multiple(
     progress_cb: Optional[Callable[[ExecutionResult, int], Awaitable[None]]] = None,
     wall_time_limit: int | None = None,
 ) -> list[ExecutionResult]:
-    """Compile once and run the code for each stdin in ``stdins``.
+    """
+    Compile once and run the code for each stdin in ``stdins``.
 
     If ``early_stop`` is True and ``expected`` is provided, execution stops
     upon the first failed test case.
     """
+    # if wall_time_limit is not None:
+    #     wall_time_limit = int(wall_time_limit * 0.2)
+
     try:
         file_path = await compile_code(lang, code, token)
         logger.info(f"Compiled code for {lang} to {file_path}")
@@ -258,7 +261,7 @@ async def execute_code_multiple(
 
     results: list[ExecutionResult] = []
 
-    # 여기서부터 실행 타이머 시작!
+    # 여기서부터 실행 타이머 시작 (wall_time_limit용)! 
     start = time.perf_counter()
     try:
         for idx, data in enumerate(stdins):
