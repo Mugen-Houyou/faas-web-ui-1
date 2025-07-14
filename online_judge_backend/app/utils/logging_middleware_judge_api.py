@@ -4,9 +4,11 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from prometheus_client import Counter, Histogram, make_asgi_app
 
-# Basic logger setup
+from .logging_utils import configure_logging
+
+# Basic logger setup with JSON output
+configure_logging()
 logger = logging.getLogger("online_judge")
-logging.basicConfig(level=logging.INFO)
 
 REQUEST_COUNT = Counter(
     "http_requests_total",

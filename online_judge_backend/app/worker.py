@@ -5,7 +5,7 @@ import time
 from pathlib import Path
 from dotenv import load_dotenv
 import aio_pika
-from .logging_middleware_worker import (
+from .utils.logging_middleware_worker import (
     logger,
     start_metrics_server,
     JOB_COUNT,

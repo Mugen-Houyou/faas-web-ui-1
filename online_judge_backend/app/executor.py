@@ -13,6 +13,12 @@ import re
 from dotenv import load_dotenv
 import psutil
 
+from .utils.logging_middleware_worker import (
+    logger,
+    JOB_COUNT,
+    JOB_DURATION,
+)
+
 # Load ../.env relative to this file so it works regardless of cwd
 env_path = Path(__file__).resolve().parents[1] / ".env"
 load_dotenv(dotenv_path=env_path, override=False)
@@ -162,7 +168,7 @@ async def run_code(
     exit_code = process.returncode if process.returncode is not None else -1
     peak_rss = await mem_task
 
-    print(f"Execution finished: {lang} {file_path} " )
+    logger.info(f"Execution finished: {lang} {file_path} " )
         #   f"Exit code: {exit_code}, Duration: {duration:.2f} ms, "
         #   f"Memory used: {peak_rss / 1024:.2f} MB, Timed out: {timed_out}")
     
@@ -235,7 +241,7 @@ async def execute_code_multiple(
     """
     try:
         file_path = await compile_code(lang, code, token)
-        print(f"Compiled code for {lang} to {file_path}")
+        logger.info(f"Compiled code for {lang} to {file_path}")
     except NotImplementedError:
         raise
     except Exception as e:

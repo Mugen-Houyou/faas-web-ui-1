@@ -1,12 +1,11 @@
 import logging
 from prometheus_client import Counter, Histogram, start_http_server
 
-# Basic logger setup for worker
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+from .logging_utils import configure_logging
+
+
+# Configure logger to output JSON
+configure_logging()
 logger = logging.getLogger("worker")
 
 # Prometheus metrics

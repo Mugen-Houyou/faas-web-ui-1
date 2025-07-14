@@ -6,15 +6,19 @@ from enum import Enum
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .logging_middleware_judge_api import LoggingMiddleware, metrics_app
+from .utils.logging_middleware_judge_api import LoggingMiddleware, metrics_app
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pathlib import Path
 import aioboto3
 from botocore.exceptions import ClientError
 
+from .utils.logging_middleware_judge_api import (
+    logger
+)
+
 from .executor import SupportedLanguage, ExecutionResult
-from .rabbitmq_rpc import RpcClient, get_rpc_client
+from .utils.rabbitmq_rpc_judge_api import RpcClient, get_rpc_client
 
 
 # Load ../.env relative to this file so it works regardless of cwd
@@ -84,9 +88,9 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup() -> None:
-    print("Starting up RPC client... ", end="")
+    logger.info("Starting up RPC client...")
     url = os.getenv("RABBITMQ_URL", "asdf")
-    print(f"Connecting to RabbitMQ at {url}")
+    logger.info(f"Connecting to RabbitMQ at {url}")
     app.state.rpc: RpcClient = await get_rpc_client()
     app.state.progress_queue = await app.state.rpc.channel.declare_queue("progress", durable=True)
     if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_REGION:
@@ -120,7 +124,7 @@ async def _fetch_problem(problem_id: str) -> dict:
     # key = f"{app.state.problems_prefix}{problem_id}.json"
     key = f"{app.state.problems_prefix}{problem_id}"
     if app.state.s3_session:
-        print(f"app.state.s3_session=True, Attempting to fetch problem {key} from AWS S3" )
+        logger.info(f"app.state.s3_session=True, Attempting to fetch problem {key} from AWS S3" )
         try:
             async with app.state.s3_session.client(
                 "s3",
@@ -132,26 +136,26 @@ async def _fetch_problem(problem_id: str) -> dict:
                     Key=key,
                 )
                 body = await obj["Body"].read()
-                print(f"Fetching problem {problem_id} from AWS S3")
+                logger.info(f"Fetched problem {problem_id}, now parsing JSON")
                 return json.loads(body)
         except ClientError as e:
             if e.response.get("Error", {}).get("Code") == "NoSuchKey":
-                raise HTTPException(status_code=404, detail="Problem not found")
+                raise HTTPException(status_code=404, detail=f"Problem {problem_id} not found")
             # Any other error will fall back to local files
-            print(f"ClientError details: {e}")
+            logger.error(f"ClientError details: {e}")
         except Exception as ex:
-            print(f"Exception details: {ex}")
+            logger.error(f"Exception details: {ex}")
 
     # Fallback to local files
-    print(f"app.state.s3_session=False, Fetching problem {problem_id} from local files")
+    logger.info(f"app.state.s3_session=False, Fetching problem {problem_id} from local files")
     path = app.state.problems_local_dir / key
     try:
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Problem not found")
+        raise HTTPException(status_code=404, detail=f"Problem {problem_id} not found")
     except Exception:
-        raise HTTPException(status_code=500, detail="Failed to fetch problem")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch the problem {problem_id}")
 
 def _result_status(res: ExecutionResult, expected: str) -> ResultStatus:
     if res.exitCode == -1 and res.stderr:
