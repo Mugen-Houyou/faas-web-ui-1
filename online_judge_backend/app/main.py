@@ -6,7 +6,7 @@ from enum import Enum
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.middleware.cors import CORSMiddleware
 
-from .logging_middleware import LoggingMiddleware, metrics_app
+from .logging_middleware_judge_api import LoggingMiddleware, metrics_app
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from pathlib import Path
