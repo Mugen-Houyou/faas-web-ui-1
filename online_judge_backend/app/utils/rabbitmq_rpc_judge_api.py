@@ -35,6 +35,7 @@ class RpcClient:
             await self.connection.close()
 
     async def _on_response(self, message: aio_pika.IncomingMessage) -> None:
+        """Handle RPC responses from the worker and acknowledge them."""
         correlation_id = message.correlation_id
         if correlation_id and correlation_id in self.futures:
             future = self.futures.pop(correlation_id)
@@ -42,6 +43,7 @@ class RpcClient:
         elif correlation_id and correlation_id in self.callbacks:
             callback = self.callbacks.pop(correlation_id)
             await callback(json.loads(message.body))
+        await message.ack()
 
     async def call(self, payload: dict) -> dict:
         if not self.channel or not self.callback_queue:
