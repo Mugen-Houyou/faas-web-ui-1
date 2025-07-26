@@ -25,6 +25,8 @@ async def main() -> None:
     logger.info("Connecting to RabbitMQ at %s ...", url)
     connection = await aio_pika.connect_robust(url)
     channel = await connection.channel()
+    
+    await channel.set_qos(prefetch_count=1)
     queue = await channel.declare_queue("execute", durable=True)
 
     logger.info("Connected to RabbitMQ. Waiting for messages...")
