@@ -1,0 +1,36 @@
+FROM debian:bookworm AS builder
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      git build-essential pkg-config libcap
+      
+WORKDIR /src
+RUN git clone --depth 1 https://github.com/ioi/isolate.git .
+RUN make isolate && make install DESTDIR=/isolate
+
+FROM python:3.11-slim
+
+ENV TZ=Asia/Seoul
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y \
+      tzdata openjdk-17-jdk libcap2-bin && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+
+COPY --from=builder /isolate/usr/local/bin/isolate /usr/local/bin/isolate
+COPY --from=builder /isolate/usr/local/share/isolate /usr/local/share/isolate
+WORKDIR /app
+COPY online_judge_backend/requirements.txt ./requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+COPY online_judge_backend ./online_judge_backend
+
+RUN mkdir -p /sandbox /submissions && \
+    useradd -m runner
+# isolate 실행은 root, 나머지는 runner로
+USER runner
+
+# entrypoint에서 isolate 활용 (권한 분리 및 보안 강화)
+CMD ["python", "-m", "online_judge_backend.app.worker"]
