@@ -41,6 +41,7 @@ docker push <ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/online-judge-worker:late
   `aws ecs update-service --cluster <CLUSTER> --service <SERVICE> --desired-count 0`
   ... 커맨드로 스크립트화할 수 있습니다.
 - CloudWatch Events(또는 EventBridge) 스케줄러를 이용해 야간에 자동으로 0으로   줄이고 필요 시 다시 1 이상으로 늘리는 방식으로 "사실상의" scale-to-zero 효과를 얻을 수 있습니다.
+- 또는 RabbitMQ queue depth와 워커 개수를 이용한 스케일링을 고려해볼 수도 있습니다.
 
 ## 4. 추가 팁
 - 로그는 CloudWatch Logs로 수집되므로, 오류 발생 시 해당 로그 그룹을 확인하세요.
