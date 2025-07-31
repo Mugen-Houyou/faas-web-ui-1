@@ -19,6 +19,13 @@ JOB_DURATION = Histogram(
     "Job processing time in seconds",
 )
 
-def start_metrics_server(port: int = 8001) -> None:
+def start_metrics_server(port: int = 58001) -> None:
     """Expose Prometheus metrics on the given port."""
-    start_http_server(port)
+    for p in range(port, 58100):
+        try:
+            start_http_server(p)
+            logger.info(f"Prometheus metrics server started on port {p}")
+            return
+        except OSError:
+            logger.warning(f"Port {p} is in use, trying next port...")
+    logger.error("No available port found between 58001 and 58100 for Prometheus metrics server.")
